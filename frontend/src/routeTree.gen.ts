@@ -14,6 +14,8 @@ import { Route as UnauthorizedRouteImport } from './routes/unauthorized'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AuthenticatedPricingRouteImport } from './routes/_authenticated.pricing'
+import { Route as AuthenticatedTenantVehiclesRouteImport } from './routes/_authenticated.tenant.vehicles'
 import { Route as AuthenticatedTenantRoomRouteImport } from './routes/_authenticated.tenant.room'
 import { Route as AuthenticatedTenantPaymentsRouteImport } from './routes/_authenticated.tenant.payments'
 import { Route as AuthenticatedTenantLaundryRouteImport } from './routes/_authenticated.tenant.laundry'
@@ -29,7 +31,11 @@ import { Route as AuthenticatedSuperAdminOwnersRouteImport } from './routes/_aut
 import { Route as AuthenticatedSuperAdminDashboardRouteImport } from './routes/_authenticated.super-admin.dashboard'
 import { Route as AuthenticatedSuperAdminAuditRouteImport } from './routes/_authenticated.super-admin.audit'
 import { Route as AuthenticatedSuperAdminAnnouncementsRouteImport } from './routes/_authenticated.super-admin.announcements'
+import { Route as AuthenticatedStaffTenantsRouteImport } from './routes/_authenticated.staff.tenants'
+import { Route as AuthenticatedStaffRoomsRouteImport } from './routes/_authenticated.staff.rooms'
+import { Route as AuthenticatedStaffMaintenanceRouteImport } from './routes/_authenticated.staff.maintenance'
 import { Route as AuthenticatedStaffDashboardRouteImport } from './routes/_authenticated.staff.dashboard'
+import { Route as AuthenticatedStaffComplaintsRouteImport } from './routes/_authenticated.staff.complaints'
 import { Route as AuthenticatedOwnerTenantsRouteImport } from './routes/_authenticated.owner.tenants'
 import { Route as AuthenticatedOwnerStaffRouteImport } from './routes/_authenticated.owner.staff'
 import { Route as AuthenticatedOwnerSettingsRouteImport } from './routes/_authenticated.owner.settings'
@@ -64,6 +70,17 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthenticatedPricingRoute = AuthenticatedPricingRouteImport.update({
+  id: '/pricing',
+  path: '/pricing',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedTenantVehiclesRoute =
+  AuthenticatedTenantVehiclesRouteImport.update({
+    id: '/tenant/vehicles',
+    path: '/tenant/vehicles',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
 const AuthenticatedTenantRoomRoute = AuthenticatedTenantRoomRouteImport.update({
   id: '/tenant/room',
   path: '/tenant/room',
@@ -153,10 +170,33 @@ const AuthenticatedSuperAdminAnnouncementsRoute =
     path: '/super-admin/announcements',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
+const AuthenticatedStaffTenantsRoute =
+  AuthenticatedStaffTenantsRouteImport.update({
+    id: '/staff/tenants',
+    path: '/staff/tenants',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const AuthenticatedStaffRoomsRoute = AuthenticatedStaffRoomsRouteImport.update({
+  id: '/staff/rooms',
+  path: '/staff/rooms',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedStaffMaintenanceRoute =
+  AuthenticatedStaffMaintenanceRouteImport.update({
+    id: '/staff/maintenance',
+    path: '/staff/maintenance',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
 const AuthenticatedStaffDashboardRoute =
   AuthenticatedStaffDashboardRouteImport.update({
     id: '/staff/dashboard',
     path: '/staff/dashboard',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const AuthenticatedStaffComplaintsRoute =
+  AuthenticatedStaffComplaintsRouteImport.update({
+    id: '/staff/complaints',
+    path: '/staff/complaints',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
 const AuthenticatedOwnerTenantsRoute =
@@ -217,6 +257,7 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
   '/unauthorized': typeof UnauthorizedRoute
   '/workspace-select': typeof WorkspaceSelectRoute
+  '/pricing': typeof AuthenticatedPricingRoute
   '/owner/complaints': typeof AuthenticatedOwnerComplaintsRoute
   '/owner/dashboard': typeof AuthenticatedOwnerDashboardRoute
   '/owner/payments': typeof AuthenticatedOwnerPaymentsRoute
@@ -226,7 +267,11 @@ export interface FileRoutesByFullPath {
   '/owner/settings': typeof AuthenticatedOwnerSettingsRoute
   '/owner/staff': typeof AuthenticatedOwnerStaffRoute
   '/owner/tenants': typeof AuthenticatedOwnerTenantsRoute
+  '/staff/complaints': typeof AuthenticatedStaffComplaintsRoute
   '/staff/dashboard': typeof AuthenticatedStaffDashboardRoute
+  '/staff/maintenance': typeof AuthenticatedStaffMaintenanceRoute
+  '/staff/rooms': typeof AuthenticatedStaffRoomsRoute
+  '/staff/tenants': typeof AuthenticatedStaffTenantsRoute
   '/super-admin/announcements': typeof AuthenticatedSuperAdminAnnouncementsRoute
   '/super-admin/audit': typeof AuthenticatedSuperAdminAuditRoute
   '/super-admin/dashboard': typeof AuthenticatedSuperAdminDashboardRoute
@@ -242,12 +287,14 @@ export interface FileRoutesByFullPath {
   '/tenant/laundry': typeof AuthenticatedTenantLaundryRoute
   '/tenant/payments': typeof AuthenticatedTenantPaymentsRoute
   '/tenant/room': typeof AuthenticatedTenantRoomRoute
+  '/tenant/vehicles': typeof AuthenticatedTenantVehiclesRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/unauthorized': typeof UnauthorizedRoute
   '/workspace-select': typeof WorkspaceSelectRoute
+  '/pricing': typeof AuthenticatedPricingRoute
   '/owner/complaints': typeof AuthenticatedOwnerComplaintsRoute
   '/owner/dashboard': typeof AuthenticatedOwnerDashboardRoute
   '/owner/payments': typeof AuthenticatedOwnerPaymentsRoute
@@ -257,7 +304,11 @@ export interface FileRoutesByTo {
   '/owner/settings': typeof AuthenticatedOwnerSettingsRoute
   '/owner/staff': typeof AuthenticatedOwnerStaffRoute
   '/owner/tenants': typeof AuthenticatedOwnerTenantsRoute
+  '/staff/complaints': typeof AuthenticatedStaffComplaintsRoute
   '/staff/dashboard': typeof AuthenticatedStaffDashboardRoute
+  '/staff/maintenance': typeof AuthenticatedStaffMaintenanceRoute
+  '/staff/rooms': typeof AuthenticatedStaffRoomsRoute
+  '/staff/tenants': typeof AuthenticatedStaffTenantsRoute
   '/super-admin/announcements': typeof AuthenticatedSuperAdminAnnouncementsRoute
   '/super-admin/audit': typeof AuthenticatedSuperAdminAuditRoute
   '/super-admin/dashboard': typeof AuthenticatedSuperAdminDashboardRoute
@@ -273,6 +324,7 @@ export interface FileRoutesByTo {
   '/tenant/laundry': typeof AuthenticatedTenantLaundryRoute
   '/tenant/payments': typeof AuthenticatedTenantPaymentsRoute
   '/tenant/room': typeof AuthenticatedTenantRoomRoute
+  '/tenant/vehicles': typeof AuthenticatedTenantVehiclesRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -281,6 +333,7 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/unauthorized': typeof UnauthorizedRoute
   '/workspace-select': typeof WorkspaceSelectRoute
+  '/_authenticated/pricing': typeof AuthenticatedPricingRoute
   '/_authenticated/owner/complaints': typeof AuthenticatedOwnerComplaintsRoute
   '/_authenticated/owner/dashboard': typeof AuthenticatedOwnerDashboardRoute
   '/_authenticated/owner/payments': typeof AuthenticatedOwnerPaymentsRoute
@@ -290,7 +343,11 @@ export interface FileRoutesById {
   '/_authenticated/owner/settings': typeof AuthenticatedOwnerSettingsRoute
   '/_authenticated/owner/staff': typeof AuthenticatedOwnerStaffRoute
   '/_authenticated/owner/tenants': typeof AuthenticatedOwnerTenantsRoute
+  '/_authenticated/staff/complaints': typeof AuthenticatedStaffComplaintsRoute
   '/_authenticated/staff/dashboard': typeof AuthenticatedStaffDashboardRoute
+  '/_authenticated/staff/maintenance': typeof AuthenticatedStaffMaintenanceRoute
+  '/_authenticated/staff/rooms': typeof AuthenticatedStaffRoomsRoute
+  '/_authenticated/staff/tenants': typeof AuthenticatedStaffTenantsRoute
   '/_authenticated/super-admin/announcements': typeof AuthenticatedSuperAdminAnnouncementsRoute
   '/_authenticated/super-admin/audit': typeof AuthenticatedSuperAdminAuditRoute
   '/_authenticated/super-admin/dashboard': typeof AuthenticatedSuperAdminDashboardRoute
@@ -306,6 +363,7 @@ export interface FileRoutesById {
   '/_authenticated/tenant/laundry': typeof AuthenticatedTenantLaundryRoute
   '/_authenticated/tenant/payments': typeof AuthenticatedTenantPaymentsRoute
   '/_authenticated/tenant/room': typeof AuthenticatedTenantRoomRoute
+  '/_authenticated/tenant/vehicles': typeof AuthenticatedTenantVehiclesRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -314,6 +372,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/unauthorized'
     | '/workspace-select'
+    | '/pricing'
     | '/owner/complaints'
     | '/owner/dashboard'
     | '/owner/payments'
@@ -323,7 +382,11 @@ export interface FileRouteTypes {
     | '/owner/settings'
     | '/owner/staff'
     | '/owner/tenants'
+    | '/staff/complaints'
     | '/staff/dashboard'
+    | '/staff/maintenance'
+    | '/staff/rooms'
+    | '/staff/tenants'
     | '/super-admin/announcements'
     | '/super-admin/audit'
     | '/super-admin/dashboard'
@@ -339,12 +402,14 @@ export interface FileRouteTypes {
     | '/tenant/laundry'
     | '/tenant/payments'
     | '/tenant/room'
+    | '/tenant/vehicles'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/login'
     | '/unauthorized'
     | '/workspace-select'
+    | '/pricing'
     | '/owner/complaints'
     | '/owner/dashboard'
     | '/owner/payments'
@@ -354,7 +419,11 @@ export interface FileRouteTypes {
     | '/owner/settings'
     | '/owner/staff'
     | '/owner/tenants'
+    | '/staff/complaints'
     | '/staff/dashboard'
+    | '/staff/maintenance'
+    | '/staff/rooms'
+    | '/staff/tenants'
     | '/super-admin/announcements'
     | '/super-admin/audit'
     | '/super-admin/dashboard'
@@ -370,6 +439,7 @@ export interface FileRouteTypes {
     | '/tenant/laundry'
     | '/tenant/payments'
     | '/tenant/room'
+    | '/tenant/vehicles'
   id:
     | '__root__'
     | '/'
@@ -377,6 +447,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/unauthorized'
     | '/workspace-select'
+    | '/_authenticated/pricing'
     | '/_authenticated/owner/complaints'
     | '/_authenticated/owner/dashboard'
     | '/_authenticated/owner/payments'
@@ -386,7 +457,11 @@ export interface FileRouteTypes {
     | '/_authenticated/owner/settings'
     | '/_authenticated/owner/staff'
     | '/_authenticated/owner/tenants'
+    | '/_authenticated/staff/complaints'
     | '/_authenticated/staff/dashboard'
+    | '/_authenticated/staff/maintenance'
+    | '/_authenticated/staff/rooms'
+    | '/_authenticated/staff/tenants'
     | '/_authenticated/super-admin/announcements'
     | '/_authenticated/super-admin/audit'
     | '/_authenticated/super-admin/dashboard'
@@ -402,6 +477,7 @@ export interface FileRouteTypes {
     | '/_authenticated/tenant/laundry'
     | '/_authenticated/tenant/payments'
     | '/_authenticated/tenant/room'
+    | '/_authenticated/tenant/vehicles'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -448,6 +524,20 @@ declare module '@tanstack/react-router' {
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated/pricing': {
+      id: '/_authenticated/pricing'
+      path: '/pricing'
+      fullPath: '/pricing'
+      preLoaderRoute: typeof AuthenticatedPricingRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/tenant/vehicles': {
+      id: '/_authenticated/tenant/vehicles'
+      path: '/tenant/vehicles'
+      fullPath: '/tenant/vehicles'
+      preLoaderRoute: typeof AuthenticatedTenantVehiclesRouteImport
+      parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/tenant/room': {
       id: '/_authenticated/tenant/room'
@@ -554,11 +644,39 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedSuperAdminAnnouncementsRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/staff/tenants': {
+      id: '/_authenticated/staff/tenants'
+      path: '/staff/tenants'
+      fullPath: '/staff/tenants'
+      preLoaderRoute: typeof AuthenticatedStaffTenantsRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/staff/rooms': {
+      id: '/_authenticated/staff/rooms'
+      path: '/staff/rooms'
+      fullPath: '/staff/rooms'
+      preLoaderRoute: typeof AuthenticatedStaffRoomsRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/staff/maintenance': {
+      id: '/_authenticated/staff/maintenance'
+      path: '/staff/maintenance'
+      fullPath: '/staff/maintenance'
+      preLoaderRoute: typeof AuthenticatedStaffMaintenanceRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
     '/_authenticated/staff/dashboard': {
       id: '/_authenticated/staff/dashboard'
       path: '/staff/dashboard'
       fullPath: '/staff/dashboard'
       preLoaderRoute: typeof AuthenticatedStaffDashboardRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/staff/complaints': {
+      id: '/_authenticated/staff/complaints'
+      path: '/staff/complaints'
+      fullPath: '/staff/complaints'
+      preLoaderRoute: typeof AuthenticatedStaffComplaintsRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/owner/tenants': {
@@ -628,6 +746,7 @@ declare module '@tanstack/react-router' {
 }
 
 interface AuthenticatedRouteChildren {
+  AuthenticatedPricingRoute: typeof AuthenticatedPricingRoute
   AuthenticatedOwnerComplaintsRoute: typeof AuthenticatedOwnerComplaintsRoute
   AuthenticatedOwnerDashboardRoute: typeof AuthenticatedOwnerDashboardRoute
   AuthenticatedOwnerPaymentsRoute: typeof AuthenticatedOwnerPaymentsRoute
@@ -637,7 +756,11 @@ interface AuthenticatedRouteChildren {
   AuthenticatedOwnerSettingsRoute: typeof AuthenticatedOwnerSettingsRoute
   AuthenticatedOwnerStaffRoute: typeof AuthenticatedOwnerStaffRoute
   AuthenticatedOwnerTenantsRoute: typeof AuthenticatedOwnerTenantsRoute
+  AuthenticatedStaffComplaintsRoute: typeof AuthenticatedStaffComplaintsRoute
   AuthenticatedStaffDashboardRoute: typeof AuthenticatedStaffDashboardRoute
+  AuthenticatedStaffMaintenanceRoute: typeof AuthenticatedStaffMaintenanceRoute
+  AuthenticatedStaffRoomsRoute: typeof AuthenticatedStaffRoomsRoute
+  AuthenticatedStaffTenantsRoute: typeof AuthenticatedStaffTenantsRoute
   AuthenticatedSuperAdminAnnouncementsRoute: typeof AuthenticatedSuperAdminAnnouncementsRoute
   AuthenticatedSuperAdminAuditRoute: typeof AuthenticatedSuperAdminAuditRoute
   AuthenticatedSuperAdminDashboardRoute: typeof AuthenticatedSuperAdminDashboardRoute
@@ -653,9 +776,11 @@ interface AuthenticatedRouteChildren {
   AuthenticatedTenantLaundryRoute: typeof AuthenticatedTenantLaundryRoute
   AuthenticatedTenantPaymentsRoute: typeof AuthenticatedTenantPaymentsRoute
   AuthenticatedTenantRoomRoute: typeof AuthenticatedTenantRoomRoute
+  AuthenticatedTenantVehiclesRoute: typeof AuthenticatedTenantVehiclesRoute
 }
 
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
+  AuthenticatedPricingRoute: AuthenticatedPricingRoute,
   AuthenticatedOwnerComplaintsRoute: AuthenticatedOwnerComplaintsRoute,
   AuthenticatedOwnerDashboardRoute: AuthenticatedOwnerDashboardRoute,
   AuthenticatedOwnerPaymentsRoute: AuthenticatedOwnerPaymentsRoute,
@@ -665,7 +790,11 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedOwnerSettingsRoute: AuthenticatedOwnerSettingsRoute,
   AuthenticatedOwnerStaffRoute: AuthenticatedOwnerStaffRoute,
   AuthenticatedOwnerTenantsRoute: AuthenticatedOwnerTenantsRoute,
+  AuthenticatedStaffComplaintsRoute: AuthenticatedStaffComplaintsRoute,
   AuthenticatedStaffDashboardRoute: AuthenticatedStaffDashboardRoute,
+  AuthenticatedStaffMaintenanceRoute: AuthenticatedStaffMaintenanceRoute,
+  AuthenticatedStaffRoomsRoute: AuthenticatedStaffRoomsRoute,
+  AuthenticatedStaffTenantsRoute: AuthenticatedStaffTenantsRoute,
   AuthenticatedSuperAdminAnnouncementsRoute:
     AuthenticatedSuperAdminAnnouncementsRoute,
   AuthenticatedSuperAdminAuditRoute: AuthenticatedSuperAdminAuditRoute,
@@ -683,6 +812,7 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedTenantLaundryRoute: AuthenticatedTenantLaundryRoute,
   AuthenticatedTenantPaymentsRoute: AuthenticatedTenantPaymentsRoute,
   AuthenticatedTenantRoomRoute: AuthenticatedTenantRoomRoute,
+  AuthenticatedTenantVehiclesRoute: AuthenticatedTenantVehiclesRoute,
 }
 
 const AuthenticatedRouteWithChildren = AuthenticatedRoute._addFileChildren(

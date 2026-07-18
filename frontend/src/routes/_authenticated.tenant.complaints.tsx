@@ -26,6 +26,8 @@ import {
 import { useAuth } from "@/providers/auth-provider";
 import { TENANT_NAV } from "@/config/navigation";
 import { cn } from "@/lib/utils";
+import { useApiCollection } from "@/hooks/use-api-collection";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/tenant/complaints")({
   head: () => ({ meta: [{ title: "Complaints · Hostly" }] }),
@@ -34,42 +36,18 @@ export const Route = createFileRoute("/_authenticated/tenant/complaints")({
 
 type Status = "open" | "in_progress" | "resolved";
 
-const INITIAL = [
-  {
-    id: "C-108",
-    title: "AC not cooling properly",
-    category: "Maintenance",
-    date: "28 Nov 2026",
-    status: "in_progress" as Status,
-    note: "Technician assigned — visit scheduled tomorrow.",
-  },
-  {
-    id: "C-092",
-    title: "Wi-Fi disconnects in the evening",
-    category: "Internet",
-    date: "12 Nov 2026",
-    status: "resolved" as Status,
-    note: "Router replaced. Please report if issue recurs.",
-  },
-  {
-    id: "C-081",
-    title: "Leaking tap in bathroom",
-    category: "Plumbing",
-    date: "02 Nov 2026",
-    status: "resolved" as Status,
-    note: "Fixed by in-house plumber.",
-  },
-];
-
-const STATUS_STYLE: Record<Status, { label: string; className: string }> = {
-  open: { label: "Open", className: "bg-warning/10 text-warning" },
-  in_progress: { label: "In progress", className: "bg-info/10 text-info" },
-  resolved: { label: "Resolved", className: "bg-success/10 text-success" },
+const STATUS_STYLE: Record<Status, { label: string; variant: "warning" | "info" | "success" }> = {
+  open: { label: "Open", variant: "warning" },
+  in_progress: { label: "In progress", variant: "info" },
+  resolved: { label: "Resolved", variant: "success" },
 };
 
 function ComplaintsPage() {
   const { user } = useAuth();
-  const [items, setItems] = useState(INITIAL);
+  const { items, add } = useApiCollection<any>("/api/complaints", {
+    params: { tenantName: user?.fullName },
+    enabled: !!user?.fullName,
+  });
   const [open, setOpen] = useState(false);
   const [title, setTitle] = useState("");
   const [category, setCategory] = useState("Maintenance");
@@ -78,24 +56,31 @@ function ComplaintsPage() {
   if (!user) return null;
   if (user.role !== "tenant") return <Navigate to="/unauthorized" />;
 
-  function submit() {
+  async function submit() {
+    if (!user) return;
     if (!title.trim()) return;
-    const next = {
-      id: `C-${Math.floor(Math.random() * 900 + 100)}`,
-      title,
-      category,
-      date: new Date().toLocaleDateString("en-IN", {
-        day: "2-digit",
-        month: "short",
-        year: "numeric",
-      }),
-      status: "open" as Status,
-      note: desc || "Awaiting staff review.",
-    };
-    setItems([next, ...items]);
-    setTitle("");
-    setDesc("");
-    setOpen(false);
+    try {
+      await add({
+        workspace_id: user.workspaceIds?.[0] || "pg_greenhaven",
+        tenant: user.fullName,
+        room: "—", // Default room if not available in user object
+        category,
+        title,
+        description: desc || "Awaiting staff review.",
+        raised_on: new Date().toLocaleDateString("en-IN", {
+          day: "2-digit",
+          month: "short",
+          year: "numeric",
+        }),
+        status: "open",
+      });
+      setTitle("");
+      setDesc("");
+      setOpen(false);
+      toast.success("Complaint submitted successfully");
+    } catch {
+      toast.error("Failed to submit complaint");
+    }
   }
 
   return (
@@ -183,9 +168,9 @@ function ComplaintsPage() {
       ) : (
         <div className="space-y-3">
           {items.map((c) => {
-            const s = STATUS_STYLE[c.status];
+            const s = STATUS_STYLE[c.status as Status] || STATUS_STYLE.open;
             return (
-              <Card key={c.id} className="border-border/70">
+              <Card key={c.id} className="border-border-default">
                 <CardHeader className="pb-3">
                   <div className="flex items-start justify-between gap-3">
                     <div>
@@ -194,7 +179,7 @@ function ComplaintsPage() {
                         <span className="font-mono">{c.id}</span> · {c.category} · Filed {c.date}
                       </p>
                     </div>
-                    <Badge variant="secondary" className={cn(s.className)}>
+                    <Badge variant={s.variant} className="font-bold border-2 shadow-sm">
                       {s.label}
                     </Badge>
                   </div>

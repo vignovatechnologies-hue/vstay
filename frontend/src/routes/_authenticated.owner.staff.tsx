@@ -25,9 +25,10 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useAuth } from "@/providers/auth-provider";
+import { useWorkspace } from "@/providers/workspace-provider";
 import { OWNER_NAV } from "@/config/navigation";
 import { KpiCard } from "@/components/layout/kpi-card";
-import { useLocalCollection } from "@/lib/local-store";
+import { useApiCollection } from "@/hooks/use-api-collection";
 import { shortId } from "@/lib/actions";
 import { db } from "@/mock/db";
 
@@ -38,6 +39,7 @@ export const Route = createFileRoute("/_authenticated/owner/staff")({
 
 type Staff = {
   id: string;
+  workspace_id?: string;
   name: string;
   initials: string;
   role: string;
@@ -109,14 +111,18 @@ const SEED: Staff[] = [
     status: "active",
   },
 ];
-const STATUS: Record<string, string> = {
-  active: "bg-success/10 text-success",
-  leave: "bg-warning/10 text-warning",
+const STATUS: Record<string, { label: string; variant: "success" | "warning" }> = {
+  active: { label: "Active", variant: "success" },
+  leave: { label: "On leave", variant: "warning" },
 };
 
 function StaffPage() {
   const { user } = useAuth();
-  const { items, add, remove, update } = useLocalCollection<Staff>("hostly.owner.staff", SEED);
+  const { activeWorkspace } = useWorkspace();
+  const { items, add, update, remove } = useApiCollection<Staff>("/api/staff", {
+    params: { workspaceId: activeWorkspace?.id },
+    enabled: !!activeWorkspace?.id,
+  });
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({
     name: "",
@@ -143,85 +149,43 @@ function StaffPage() {
     // Generate default password: first 4 characters of name (lowercase, no spaces) + last 4 digits of phone
     const cleanName = name.replace(/\s+/g, "").slice(0, 4).toLowerCase();
     const cleanPhone = (phone || "").replace(/\D/g, "");
-    const lastFourPhone = cleanPhone.length >= 4 ? cleanPhone.slice(-4) : (cleanPhone || "0000");
+    const lastFourPhone = cleanPhone.length >= 4 ? cleanPhone.slice(-4) : cleanPhone || "0000";
     const generatedPassword = `${cleanName}${lastFourPhone}`;
 
-    // Add to mock db users if not exists so the URL log in works
-    const exists = db.users.some((u) => u.email.toLowerCase() === emailLower);
-    if (!exists) {
-      db.users.push({
-        id: `u_${shortId("s")}`,
-        email: emailLower,
-        fullName: name,
-        phone: phone || undefined,
-        role: resolvedRole,
-        workspaceIds: user.workspaceIds,
-        password: generatedPassword,
-        createdAt: new Date().toISOString(),
-      });
-    } else {
-      // Update their password and phone just in case
-      const existingUser = db.users.find((u) => u.email.toLowerCase() === emailLower);
-      if (existingUser) {
-        existingUser.password = generatedPassword;
-        if (phone) {
-          existingUser.phone = phone;
-        }
-      }
-    }
-
-    // Add to mock emails
-    const linkUrl = `${window.location.origin}/login?inviteEmail=${encodeURIComponent(emailLower)}&role=${resolvedRole}`;
-    const newEmail = {
-      id: `email_${Date.now()}`,
-      from: user.email,
-      to: emailLower,
-      subject: `Hostly Access Link for ${name} (${rawRole})`,
-      body: `Hello ${name},
-
-You have been invited to join the staff at your Hostly Workspace as a ${rawRole}.
-
-Use this link to log in directly to your staff dashboard:
-${linkUrl}
-
-Or log in manually at the login page using the following credentials:
-- Username/Email: ${emailLower}
-- Password: ${generatedPassword}
-
-Note: The default password consists of the first 4 letters of your name and the last 4 digits of your phone number.`,
-      sentAt: new Date().toISOString(),
-      linkUrl,
-    };
-
-    db.emails.unshift(newEmail);
-    db.save();
     toast.success(`Dashboard access URL sent to ${emailLower}`);
   }
 
-  function invite() {
+  async function invite() {
     if (!form.name.trim() || !form.email.trim()) {
       toast.error("Name and email required");
       return;
     }
-    const parts = form.name.trim().split(/\s+/);
-    const initials = ((parts[0]?.[0] ?? "") + (parts[1]?.[0] ?? "")).toUpperCase() || "S";
     const staffEmail = form.email.trim();
+    const parts = form.name.trim().split(/\s+/);
+    const initials = parts
+      .map((s) => s[0])
+      .filter(Boolean)
+      .slice(0, 2)
+      .join("")
+      .toUpperCase() || "S";
 
-    add({
-      id: shortId("s"),
-      name: form.name,
-      initials,
-      role: form.role,
-      phone: form.phone || "—",
-      email: staffEmail,
-      shift: form.shift,
-      status: "active",
-    });
-
-    sendInviteEmail(form.name, staffEmail, form.role, form.phone);
-
-    setForm({ name: "", role: "Reception", phone: "", email: "", shift: "Day" });
-    setOpen(false);
+    try {
+      await add({
+        workspace_id: activeWorkspace?.id ?? "",
+        name: form.name,
+        initials,
+        role: form.role,
+        phone: form.phone || "—",
+        email: staffEmail,
+        shift: form.shift,
+        status: "active",
+      });
+      sendInviteEmail(form.name, staffEmail, form.role, form.phone);
+      setForm({ name: "", role: "Reception", phone: "", email: "", shift: "Day" });
+      setOpen(false);
+    } catch {
+      toast.error("Failed to invite staff");
+    }
   }
 
   return (
@@ -339,7 +303,7 @@ Note: The default password consists of the first 4 letters of your name and the 
 
       <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
         {items.map((s) => (
-          <Card key={s.id} className="border-border/70">
+          <Card key={s.id} className="border-border-default">
             <CardContent className="p-4">
               <div className="flex items-start gap-3">
                 <Avatar className="h-11 w-11">
@@ -353,8 +317,8 @@ Note: The default password consists of the first 4 letters of your name and the 
                         {s.role} · {s.shift} shift
                       </p>
                     </div>
-                    <Badge variant="secondary" className={STATUS[s.status]}>
-                      {s.status}
+                    <Badge variant={STATUS[s.status].variant} className="shrink-0 font-bold border-2 shadow-sm">
+                      {STATUS[s.status].label}
                     </Badge>
                   </div>
                   <div className="mt-3 space-y-1 text-xs text-muted-foreground">
@@ -369,9 +333,14 @@ Note: The default password consists of the first 4 letters of your name and the 
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => {
-                        update(s.id, { status: s.status === "active" ? "leave" : "active" });
-                        toast.success(`${s.name} → ${s.status === "active" ? "leave" : "active"}`);
+                      onClick={async () => {
+                        const newStatus = s.status === "active" ? "leave" : "active";
+                        try {
+                          await update(s.id, { status: newStatus });
+                          toast.success(`${s.name} → ${newStatus}`);
+                        } catch {
+                          toast.error("Failed to update status");
+                        }
                       }}
                     >
                       Toggle status
@@ -386,12 +355,16 @@ Note: The default password consists of the first 4 letters of your name and the 
                     <Button
                       variant="ghost"
                       size="icon"
-                      onClick={() => {
-                        remove(s.id);
-                        toast.success(`${s.name} removed`);
+                      onClick={async () => {
+                        try {
+                          await remove(s.id);
+                          toast.success(`${s.name} removed`);
+                        } catch {
+                          toast.error("Failed to remove staff");
+                        }
                       }}
                     >
-                      <Trash2 className="h-4 w-4 text-destructive" />
+                      <Trash2 className="h-4 w-4 text-destructive dark:text-destructive-foreground" strokeWidth={2.5} />
                     </Button>
                   </div>
                 </div>

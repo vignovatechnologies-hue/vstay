@@ -73,7 +73,7 @@ function PlatformSettings() {
       navGroups={SUPER_ADMIN_NAV}
     >
       <div className="grid gap-4 lg:grid-cols-3">
-        <Card className="lg:col-span-2 border-border/70">
+        <Card className="lg:col-span-2 border-border-default">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base">
               <Globe className="h-4 w-4" /> Brand & workspace defaults
@@ -118,7 +118,7 @@ function PlatformSettings() {
           </CardContent>
         </Card>
 
-        <Card className="border-border/70">
+        <Card className="border-border-default">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base">
               <User className="h-4 w-4" /> Your account
@@ -137,7 +137,7 @@ function PlatformSettings() {
       </div>
 
       <div className="mt-4 grid gap-4 lg:grid-cols-3">
-        <Card className="border-border/70">
+        <Card className="border-border-default">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base">
               <Shield className="h-4 w-4" /> Security
@@ -167,7 +167,7 @@ function PlatformSettings() {
           </CardContent>
         </Card>
 
-        <Card className="border-border/70">
+        <Card className="border-border-default">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base">
               <Bell className="h-4 w-4" /> Notifications
@@ -197,7 +197,7 @@ function PlatformSettings() {
           </CardContent>
         </Card>
 
-        <Card className="border-border/70">
+        <Card className="border-border-default">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base">
               <Key className="h-4 w-4" /> API & integrations
@@ -209,7 +209,7 @@ function PlatformSettings() {
             <Row label="Email" value="Postmark" />
             <div className="flex items-center justify-between">
               <span className="text-muted-foreground">API status</span>
-              <Badge variant="secondary" className="bg-success/10 text-success">
+              <Badge variant="success" className="font-bold border-2 shadow-sm">
                 Operational
               </Badge>
             </div>
@@ -235,7 +235,7 @@ function PlatformSettings() {
             {["pk_live_hostly_84af…c1e2", "sk_live_hostly_2b91…f60a"].map((k) => (
               <div
                 key={k}
-                className="flex items-center justify-between rounded-md border border-border/70 p-3 font-mono text-xs"
+                className="flex items-center justify-between rounded-md border border-border-default p-3 font-mono text-xs"
               >
                 <span>{k}</span>
                 <div className="space-x-1">

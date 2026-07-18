@@ -16,7 +16,7 @@ export function Topbar({ title, subtitle, showWorkspaceSwitcher = false }: Topba
   const showSwitcher = showWorkspaceSwitcher && hasRole("owner");
 
   return (
-    <header className="sticky top-0 z-30 flex h-14 items-center gap-3 border-b border-border bg-background/85 px-4 backdrop-blur supports-[backdrop-filter]:bg-background/70">
+    <header className="z-30 shrink-0 flex h-14 items-center gap-3 border-b border-border bg-background/85 px-4 backdrop-blur supports-[backdrop-filter]:bg-background/70">
       <div className="min-w-0 flex-1">
         <h1 className="truncate text-sm font-semibold leading-tight text-foreground">{title}</h1>
         {subtitle ? <p className="truncate text-xs text-muted-foreground">{subtitle}</p> : null}

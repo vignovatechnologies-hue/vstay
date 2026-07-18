@@ -88,10 +88,10 @@ const LOGS = [
   },
 ];
 
-const SEV: Record<string, string> = {
-  info: "bg-info/10 text-info",
-  warn: "bg-warning/10 text-warning",
-  danger: "bg-destructive/10 text-destructive",
+const SEV: Record<string, "info" | "warning" | "danger"> = {
+  info: "info",
+  warn: "warning",
+  danger: "danger",
 };
 
 function AuditPage() {
@@ -112,18 +112,18 @@ function AuditPage() {
         <KpiCard label="Retention" value="90 days" icon={ShieldCheck} />
       </div>
 
-      <Card className="mt-6 border-border/70">
-        <CardContent className="p-0">
-          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border/70 p-4">
+      <section className="w-full mt-6">
+        <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
             <div className="relative w-full max-w-xs">
               <Search className="pointer-events-none absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input placeholder="Search actor, action or target…" className="pl-8" />
+              <Input placeholder="Search actor, action or target…" className="pl-8 bg-input/20 border-border text-foreground placeholder:text-muted-foreground focus-visible:ring-1 focus-visible:ring-ring" />
             </div>
             <Button variant="outline" size="sm">
               <Filter className="mr-1 h-3.5 w-3.5" /> Filter
             </Button>
           </div>
-          <Table>
+          <div className="w-full overflow-x-auto">
+            <Table>
             <TableHeader>
               <TableRow>
                 <TableHead>Time</TableHead>
@@ -138,23 +138,23 @@ function AuditPage() {
             <TableBody>
               {LOGS.map((l, i) => (
                 <TableRow key={i}>
-                  <TableCell className="whitespace-nowrap text-muted-foreground">{l.t}</TableCell>
-                  <TableCell className="font-medium">{l.actor}</TableCell>
-                  <TableCell className="text-muted-foreground">{l.role}</TableCell>
-                  <TableCell className="font-mono text-xs">{l.action}</TableCell>
-                  <TableCell>{l.target}</TableCell>
-                  <TableCell className="font-mono text-xs text-muted-foreground">{l.ip}</TableCell>
+                  <TableCell className="whitespace-nowrap text-muted-foreground dark:text-[#94A3B8] font-medium">{l.t}</TableCell>
+                  <TableCell className="font-semibold text-foreground dark:text-[#F1F5F9]">{l.actor}</TableCell>
+                  <TableCell className="text-muted-foreground dark:text-[#A8B4C5] font-medium">{l.role}</TableCell>
+                  <TableCell className="font-mono text-xs text-muted-foreground dark:text-[#A8B4C5]">{l.action}</TableCell>
+                  <TableCell className="text-foreground dark:text-[#E2E8F0] font-medium">{l.target}</TableCell>
+                  <TableCell className="font-mono text-xs text-muted-foreground dark:text-[#718096]">{l.ip}</TableCell>
                   <TableCell>
-                    <Badge variant="secondary" className={SEV[l.sev]}>
+                    <Badge variant={SEV[l.sev]} className="capitalize">
                       {l.sev}
                     </Badge>
                   </TableCell>
                 </TableRow>
               ))}
             </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+            </Table>
+          </div>
+      </section>
     </DashboardShell>
   );
 }

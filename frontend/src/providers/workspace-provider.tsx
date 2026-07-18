@@ -1,7 +1,7 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { createContext, useCallback, useContext, useMemo, type ReactNode } from "react";
 import { workspaceService } from "@/services/workspace.service";
-import { useAuth } from "./auth-provider";
+import { useAuth } from "@/providers/auth-provider";
 import type { Workspace } from "@/types/workspace";
 
 interface WorkspaceContextValue {

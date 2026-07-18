@@ -91,7 +91,7 @@ function PlanEditor({
   }
 
   return (
-    <Card className={plan.highlighted ? "border-primary" : "border-border/70"}>
+    <Card className={plan.highlighted ? "border-primary" : "border-border-default"}>
       <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle className="flex items-center gap-2 text-base">
           <Tag className="h-4 w-4" /> {plan.name} plan
@@ -145,7 +145,7 @@ function PlanEditor({
           </div>
         </div>
 
-        <div className="flex items-center justify-between rounded-md border border-border/70 p-3">
+        <div className="flex items-center justify-between rounded-md border border-border-default bg-surface-raised p-3">
           <div>
             <p className="text-sm font-medium">Highlight this plan</p>
             <p className="text-xs text-muted-foreground">
@@ -166,10 +166,10 @@ function PlanEditor({
             {plan.features.map((f, i) => (
               <li
                 key={`${f}-${i}`}
-                className="flex items-center justify-between rounded-md border border-border/70 px-3 py-2 text-sm"
+                className="flex items-center justify-between rounded-md border border-border-default bg-surface-raised px-3 py-2 text-sm text-[#0F172A] dark:text-[#F8FAFC] hover:bg-surface-hover hover:border-border-strong transition-colors"
               >
                 <span>{f}</span>
-                <Button variant="ghost" size="icon" onClick={() => removeFeature(i)}>
+                <Button variant="ghost" size="icon" onClick={() => removeFeature(i)} className="text-[#94A3B8] dark:text-[#B7C4D4] hover:text-red-500 dark:hover:text-[#F87171] hover:bg-transparent">
                   <X className="h-4 w-4" />
                 </Button>
               </li>

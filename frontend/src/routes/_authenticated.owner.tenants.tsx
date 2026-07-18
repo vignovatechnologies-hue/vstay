@@ -1,5 +1,5 @@
-import { createFileRoute, Navigate } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { createFileRoute, Navigate, useNavigate } from "@tanstack/react-router";
+import { useMemo, useState, useEffect } from "react";
 import { Users, Plus, Search, Phone, Mail, Trash2, Send } from "lucide-react";
 import { toast } from "sonner";
 import { DashboardShell } from "@/components/layout/dashboard-shell";
@@ -27,19 +27,27 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { useAuth } from "@/providers/auth-provider";
+import { useWorkspace } from "@/providers/workspace-provider";
 import { OWNER_NAV } from "@/config/navigation";
 import { KpiCard } from "@/components/layout/kpi-card";
-import { useLocalCollection } from "@/lib/local-store";
-import { shortId, formatShortDate } from "@/lib/actions";
+import { useApiCollection } from "@/hooks/use-api-collection";
+import { formatShortDate, shortId } from "@/lib/actions";
 import { db } from "@/mock/db";
+import { PlanSelection } from "@/components/pricing/plan-selection";
 
 export const Route = createFileRoute("/_authenticated/owner/tenants")({
   head: () => ({ meta: [{ title: "Tenants · Hostly" }] }),
+  validateSearch: (search: Record<string, unknown>) => {
+    return {
+      action: (search.action as string) || undefined,
+    };
+  },
   component: TenantsPage,
 });
 
 type Tenant = {
   id: string;
+  workspace_id?: string;
   name: string;
   initials: string;
   room: string;
@@ -119,21 +127,26 @@ const SEED: Tenant[] = [
   },
 ];
 
-const RENT: Record<string, string> = {
-  paid: "bg-success/10 text-success",
-  due: "bg-warning/10 text-warning",
-  overdue: "bg-destructive/10 text-destructive",
+const RENT: Record<string, "success" | "warning" | "danger"> = {
+  paid: "success",
+  due: "warning",
+  overdue: "danger",
 };
-const KYC: Record<string, string> = {
-  verified: "bg-success/10 text-success",
-  pending: "bg-warning/10 text-warning",
+const KYC: Record<string, "success" | "warning"> = {
+  verified: "success",
+  pending: "warning",
 };
 
 function TenantsPage() {
   const { user } = useAuth();
-  const { items, add, remove } = useLocalCollection<Tenant>("hostly.owner.tenants", SEED);
+  const { activeWorkspace } = useWorkspace();
+  const { items, add, remove } = useApiCollection<Tenant>("/api/tenants", {
+    params: { workspaceId: activeWorkspace?.id },
+    enabled: !!activeWorkspace?.id,
+  });
   const [q, setQ] = useState("");
   const [open, setOpen] = useState(false);
+  const [step, setStep] = useState<"plan" | "details">("plan");
   const [view, setView] = useState<Tenant | null>(null);
   const [form, setForm] = useState({ name: "", room: "", phone: "", email: "" });
 
@@ -144,6 +157,17 @@ function TenantsPage() {
       `${t.name} ${t.room} ${t.email} ${t.phone}`.toLowerCase().includes(s),
     );
   }, [items, q]);
+
+  const search = Route.useSearch();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (search.action === "add-tenant") {
+      setOpen(true);
+      setStep("plan");
+      navigate({ to: "/owner/tenants", replace: true, search: { action: undefined } });
+    }
+  }, [search.action, navigate]);
 
   if (!user) return null;
   if (user.role !== "owner") return <Navigate to="/unauthorized" />;
@@ -159,7 +183,7 @@ function TenantsPage() {
     // Generate default password: first 4 characters of name (lowercase, no spaces) + last 4 digits of phone
     const cleanName = name.replace(/\s+/g, "").slice(0, 4).toLowerCase();
     const cleanPhone = (phone || "").replace(/\D/g, "");
-    const lastFourPhone = cleanPhone.length >= 4 ? cleanPhone.slice(-4) : (cleanPhone || "0000");
+    const lastFourPhone = cleanPhone.length >= 4 ? cleanPhone.slice(-4) : cleanPhone || "0000";
     const generatedPassword = `${cleanName}${lastFourPhone}`;
 
     // Add to mock db users if not exists so the URL log in works
@@ -214,37 +238,54 @@ Note: The default password consists of the first 4 letters of your name and the 
     toast.success(`Dashboard access URL sent to ${emailLower}`);
   }
 
-  function submitAdd() {
+  async function submitAdd() {
     if (!form.name.trim() || !form.room.trim()) {
       toast.error("Name and room are required");
       return;
     }
-    const parts = form.name.trim().split(/\s+/);
-    const initials = ((parts[0]?.[0] ?? "") + (parts[1]?.[0] ?? "")).toUpperCase() || "T";
     const tenantEmail = form.email.trim();
-    add({
-      id: shortId("t"),
-      name: form.name,
-      initials,
-      room: form.room,
-      phone: form.phone || "—",
-      email: tenantEmail || "—",
-      since: formatShortDate(),
-      rent: "due",
-      kyc: "pending",
-    });
+    const parts = form.name.trim().split(/\s+/);
+    const initials = parts
+      .map((s) => s[0])
+      .filter(Boolean)
+      .slice(0, 2)
+      .join("")
+      .toUpperCase() || "T";
 
-    if (tenantEmail) {
-      sendInviteEmail(form.name, tenantEmail, form.phone);
+    try {
+      await add({
+        workspace_id: activeWorkspace?.id ?? "",
+        name: form.name,
+        initials,
+        room: form.room,
+        phone: form.phone || "—",
+        email: tenantEmail || "—",
+        since: formatShortDate(),
+        rent: "due",
+        kyc: "pending",
+      });
+
+      if (tenantEmail) {
+        sendInviteEmail(form.name, tenantEmail, form.phone);
+      }
+      setForm({ name: "", room: "", phone: "", email: "" });
+      setOpen(false);
+      toast.success(`${form.name} added`);
+    } catch {
+      toast.error("Failed to add tenant");
     }
-
-    setForm({ name: "", room: "", phone: "", email: "" });
-    setOpen(false);
-    toast.success(`${form.name} added`);
   }
-  function del(t: Tenant) {
-    remove(t.id);
-    toast.success(`${t.name} removed`);
+  async function del(t: Tenant) {
+    try {
+      await remove(t.id);
+      toast.success(`${t.name} removed`);
+    } catch {
+      toast.error("Failed to remove tenant");
+    }
+  }
+
+  function handleSelectPlan(planId: string) {
+    setStep("details");
   }
 
   return (
@@ -276,74 +317,93 @@ Note: The default password consists of the first 4 letters of your name and the 
         />
       </div>
 
-      <Card className="mt-6 border-border/70">
-        <CardContent className="p-0">
-          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border/70 p-4">
+      <section className="w-full mt-6">
+        <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
             <div className="relative w-full max-w-xs">
               <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
                 placeholder="Search tenants…"
-                className="pl-8"
+                className="pl-8 bg-input/20 border-border text-foreground placeholder:text-muted-foreground focus-visible:ring-1 focus-visible:ring-ring"
                 value={q}
                 onChange={(e) => setQ(e.target.value)}
               />
             </div>
-            <Dialog open={open} onOpenChange={setOpen}>
+            <Dialog open={open} onOpenChange={(o) => {
+              setOpen(o);
+              if (!o) setStep("plan");
+            }}>
               <DialogTrigger asChild>
                 <Button size="sm">
                   <Plus className="mr-1 h-4 w-4" /> Add tenant
                 </Button>
               </DialogTrigger>
-              <DialogContent>
+              <DialogContent className={step === "plan" ? "max-w-4xl" : "max-w-md"}>
                 <DialogHeader>
-                  <DialogTitle>Add tenant</DialogTitle>
+                  <DialogTitle>{step === "plan" ? "Workspace Subscription" : "Add tenant"}</DialogTitle>
                 </DialogHeader>
-                <div className="grid gap-3">
-                  <div>
-                    <Label>Full name</Label>
-                    <Input
-                      value={form.name}
-                      onChange={(e) => setForm({ ...form, name: e.target.value })}
-                      className="mt-1.5"
+                {step === "plan" ? (
+                  <div className="py-2">
+                    <PlanSelection 
+                      onSelectPlan={handleSelectPlan} 
+                      onCancel={() => setOpen(false)} 
                     />
                   </div>
-                  <div>
-                    <Label>Room</Label>
-                    <Input
-                      value={form.room}
-                      onChange={(e) => setForm({ ...form, room: e.target.value })}
-                      placeholder="e.g. 204·B"
-                      className="mt-1.5"
-                    />
-                  </div>
-                  <div>
-                    <Label>Phone</Label>
-                    <Input
-                      value={form.phone}
-                      onChange={(e) => setForm({ ...form, phone: e.target.value })}
-                      className="mt-1.5"
-                    />
-                  </div>
-                  <div>
-                    <Label>Email</Label>
-                    <Input
-                      type="email"
-                      value={form.email}
-                      onChange={(e) => setForm({ ...form, email: e.target.value })}
-                      className="mt-1.5"
-                    />
-                  </div>
-                </div>
-                <DialogFooter>
-                  <Button variant="outline" onClick={() => setOpen(false)}>
-                    Cancel
-                  </Button>
-                  <Button onClick={submitAdd}>Add tenant</Button>
-                </DialogFooter>
+                ) : (
+                  <>
+                    <div className="grid gap-3">
+                      <div>
+                        <Label>Full name</Label>
+                        <Input
+                          value={form.name}
+                          onChange={(e) => setForm({ ...form, name: e.target.value })}
+                          className="mt-1.5"
+                        />
+                      </div>
+                      <div>
+                        <Label>Room</Label>
+                        <Input
+                          value={form.room}
+                          onChange={(e) => setForm({ ...form, room: e.target.value })}
+                          placeholder="e.g. 204·B"
+                          className="mt-1.5"
+                        />
+                      </div>
+                      <div>
+                        <Label>Phone</Label>
+                        <Input
+                          value={form.phone}
+                          onChange={(e) => setForm({ ...form, phone: e.target.value })}
+                          className="mt-1.5"
+                        />
+                      </div>
+                      <div>
+                        <Label>Email</Label>
+                        <Input
+                          type="email"
+                          value={form.email}
+                          onChange={(e) => setForm({ ...form, email: e.target.value })}
+                          className="mt-1.5"
+                        />
+                      </div>
+                    </div>
+                    <DialogFooter className="mt-4 flex sm:justify-between">
+                      <Button variant="ghost" onClick={() => setStep("plan")}>
+                        Back
+                      </Button>
+                      <div className="flex justify-end gap-2 mt-2 sm:mt-0">
+                        <Button variant="outline" onClick={() => setOpen(false)}>
+                          Cancel
+                        </Button>
+                        <Button onClick={submitAdd}>Add tenant</Button>
+                      </div>
+                    </DialogFooter>
+                  </>
+                )}
               </DialogContent>
             </Dialog>
           </div>
-          <Table>
+          <div className="w-full overflow-x-auto">
+            <Table>
             <TableHeader>
               <TableRow>
                 <TableHead>Tenant</TableHead>
@@ -363,12 +423,12 @@ Note: The default password consists of the first 4 letters of your name and the 
                       <Avatar className="h-8 w-8">
                         <AvatarFallback className="text-xs">{t.initials}</AvatarFallback>
                       </Avatar>
-                      <span className="font-medium">{t.name}</span>
+                      <span className="font-semibold text-foreground dark:text-[#F8FAFC]">{t.name}</span>
                     </div>
                   </TableCell>
-                  <TableCell className="font-mono text-xs">{t.room}</TableCell>
+                  <TableCell className="font-mono text-xs text-muted-foreground dark:text-[#A8B4C5] font-medium">{t.room}</TableCell>
                   <TableCell>
-                    <div className="space-y-0.5 text-xs text-muted-foreground">
+                    <div className="space-y-0.5 text-xs text-muted-foreground dark:text-[#718096]">
                       <p className="flex items-center gap-1">
                         <Phone className="h-3 w-3" /> {t.phone}
                       </p>
@@ -377,31 +437,31 @@ Note: The default password consists of the first 4 letters of your name and the 
                       </p>
                     </div>
                   </TableCell>
-                  <TableCell className="text-muted-foreground">{t.since}</TableCell>
+                  <TableCell className="text-muted-foreground dark:text-[#94A3B8] font-medium">{t.since}</TableCell>
                   <TableCell>
-                    <Badge variant="secondary" className={RENT[t.rent]}>
+                    <Badge variant={RENT[t.rent]} className="capitalize">
                       {t.rent}
                     </Badge>
                   </TableCell>
                   <TableCell>
-                    <Badge variant="secondary" className={KYC[t.kyc]}>
+                    <Badge variant={KYC[t.kyc]} className="capitalize">
                       {t.kyc}
                     </Badge>
                   </TableCell>
                   <TableCell className="text-right space-x-1">
-                    <Button variant="ghost" size="sm" onClick={() => setView(t)}>
+                    <Button variant="tableActionPrimary" size="sm" onClick={() => setView(t)}>
                       View
                     </Button>
                     <Button
-                      variant="ghost"
+                      variant="tableAction"
                       size="sm"
                       onClick={() => sendInviteEmail(t.name, t.email, t.phone)}
                       title="Send access link email"
                     >
                       Send Link
                     </Button>
-                    <Button variant="ghost" size="icon" onClick={() => del(t)}>
-                      <Trash2 className="h-4 w-4 text-destructive" />
+                    <Button variant="tableActionDestructive" size="icon" onClick={() => del(t)}>
+                      <Trash2 className="h-4 w-4 text-destructive dark:text-destructive-foreground" strokeWidth={2.5} />
                     </Button>
                   </TableCell>
                 </TableRow>
@@ -414,9 +474,9 @@ Note: The default password consists of the first 4 letters of your name and the 
                 </TableRow>
               )}
             </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+            </Table>
+          </div>
+      </section>
 
       <Dialog open={!!view} onOpenChange={(o) => !o && setView(null)}>
         <DialogContent>
@@ -444,13 +504,13 @@ Note: The default password consists of the first 4 letters of your name and the 
               </p>
               <p>
                 <span className="text-muted-foreground">Rent:</span>{" "}
-                <Badge variant="secondary" className={RENT[view.rent]}>
+                <Badge variant={RENT[view.rent]} className="capitalize">
                   {view.rent}
                 </Badge>
               </p>
               <p>
                 <span className="text-muted-foreground">KYC:</span>{" "}
-                <Badge variant="secondary" className={KYC[view.kyc]}>
+                <Badge variant={KYC[view.kyc]} className="capitalize">
                   {view.kyc}
                 </Badge>
               </p>

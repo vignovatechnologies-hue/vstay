@@ -54,7 +54,7 @@ function ReportsPage() {
         <KpiCard label="Churn" value="4.1%" delta="-0.8 pts" tone="up" icon={TrendingDown} />
       </div>
 
-      <Card className="mt-6 border-border/70">
+      <Card className="mt-6 border-border-default">
         <CardHeader>
           <CardTitle className="text-base">Collections vs target (₹ Lakh)</CardTitle>
         </CardHeader>
@@ -90,7 +90,7 @@ function ReportsPage() {
       </Card>
 
       <div className="mt-4 grid gap-4 md:grid-cols-2">
-        <Card className="border-border/70">
+        <Card className="border-border-default">
           <CardHeader>
             <CardTitle className="text-base">Top revenue rooms</CardTitle>
           </CardHeader>
@@ -102,7 +102,7 @@ function ReportsPage() {
             ].map((x) => (
               <div
                 key={x.r}
-                className="flex items-center justify-between border-b border-border/50 pb-2 last:border-0"
+                className="flex items-center justify-between border-b border-border-default pb-2 last:border-0"
               >
                 <span className="text-sm">{x.r}</span>
                 <span className="font-semibold">{x.v}</span>
@@ -110,7 +110,7 @@ function ReportsPage() {
             ))}
           </CardContent>
         </Card>
-        <Card className="border-border/70">
+        <Card className="border-border-default">
           <CardHeader>
             <CardTitle className="text-base">Expense split (Nov)</CardTitle>
           </CardHeader>

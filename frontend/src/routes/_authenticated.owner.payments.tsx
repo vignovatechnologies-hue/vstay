@@ -22,9 +22,10 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { useAuth } from "@/providers/auth-provider";
+import { useWorkspace } from "@/providers/workspace-provider";
 import { OWNER_NAV } from "@/config/navigation";
 import { KpiCard } from "@/components/layout/kpi-card";
-import { useLocalCollection } from "@/lib/local-store";
+import { useApiCollection } from "@/hooks/use-api-collection";
 import { downloadCSV } from "@/lib/actions";
 
 export const Route = createFileRoute("/_authenticated/owner/payments")({
@@ -106,15 +107,19 @@ const SEED: Invoice[] = [
     status: "paid",
   },
 ];
-const STATUS: Record<PayStatus, string> = {
-  paid: "bg-success/10 text-success",
-  due: "bg-warning/10 text-warning",
-  overdue: "bg-destructive/10 text-destructive",
+const STATUS: Record<PayStatus, "success" | "warning" | "danger"> = {
+  paid: "success",
+  due: "warning",
+  overdue: "danger",
 };
 
 function PaymentsPage() {
   const { user } = useAuth();
-  const { items, update } = useLocalCollection<Invoice>("hostly.owner.invoices", SEED);
+  const { activeWorkspace } = useWorkspace();
+  const { items, update } = useApiCollection<Invoice>("/api/invoices", {
+    params: { workspaceId: activeWorkspace?.id },
+    enabled: !!activeWorkspace?.id,
+  });
   const [filter, setFilter] = useState<"all" | PayStatus>("all");
   const filtered = useMemo(
     () => (filter === "all" ? items : items.filter((i) => i.status === filter)),
@@ -127,13 +132,17 @@ function PaymentsPage() {
   function remind(inv: Invoice) {
     toast.success(`Reminder sent to ${inv.tenant}`);
   }
-  function markPaid(inv: Invoice) {
-    update(inv.id, {
-      status: "paid",
-      date: new Date().toLocaleDateString("en-IN", { day: "2-digit", month: "short" }),
-      method: "Manual",
-    });
-    toast.success(`${inv.id} marked as paid`);
+  async function markPaid(inv: Invoice) {
+    try {
+      await update(inv.id, {
+        status: "paid",
+        date: new Date().toLocaleDateString("en-IN", { day: "2-digit", month: "short" }),
+        method: "Manual",
+      });
+      toast.success(`${inv.id} marked as paid`);
+    } catch {
+      toast.error("Failed to mark invoice as paid");
+    }
   }
   function exportCsv() {
     downloadCSV("invoices-november-2026.csv", filtered);
@@ -160,9 +169,9 @@ function PaymentsPage() {
         <KpiCard label="MoM growth" value="+8.4%" tone="up" icon={TrendingUp} />
       </div>
 
-      <Card className="mt-6 border-border/70">
-        <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle className="text-base">Invoices · November 2026</CardTitle>
+      <section className="w-full mt-6">
+        <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
+          <h2 className="text-base font-semibold text-foreground dark:text-[#F8FAFC]">Invoices · November 2026</h2>
           <div className="flex gap-2">
             <Select value={filter} onValueChange={(v) => setFilter(v as "all" | PayStatus)}>
               <SelectTrigger className="h-8 w-[130px]">
@@ -180,8 +189,8 @@ function PaymentsPage() {
               <Download className="mr-1 h-3.5 w-3.5" /> Export
             </Button>
           </div>
-        </CardHeader>
-        <CardContent className="p-0">
+        </div>
+        <div className="w-full overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow>
@@ -199,28 +208,28 @@ function PaymentsPage() {
             <TableBody>
               {filtered.map((p) => (
                 <TableRow key={p.id}>
-                  <TableCell className="font-mono text-xs">{p.id}</TableCell>
-                  <TableCell className="font-medium">{p.tenant}</TableCell>
-                  <TableCell className="font-mono text-xs text-muted-foreground">
+                  <TableCell className="font-mono text-xs text-muted-foreground dark:text-[#CBD5E1] font-medium">{p.id}</TableCell>
+                  <TableCell className="font-semibold text-foreground dark:text-[#F8FAFC]">{p.tenant}</TableCell>
+                  <TableCell className="font-mono text-xs text-muted-foreground dark:text-[#718096]">
                     {p.room}
                   </TableCell>
-                  <TableCell className="text-muted-foreground">{p.month}</TableCell>
-                  <TableCell className="font-semibold">{p.amount}</TableCell>
-                  <TableCell className="text-muted-foreground">{p.date}</TableCell>
-                  <TableCell className="text-muted-foreground">{p.method}</TableCell>
+                  <TableCell className="text-muted-foreground dark:text-[#A8B4C5] font-medium">{p.month}</TableCell>
+                  <TableCell className="font-semibold text-foreground dark:text-[#F8FAFC] tabular-nums">{p.amount}</TableCell>
+                  <TableCell className="text-muted-foreground dark:text-[#94A3B8] font-medium">{p.date}</TableCell>
+                  <TableCell className="text-muted-foreground dark:text-[#94A3B8] font-medium">{p.method}</TableCell>
                   <TableCell>
-                    <Badge variant="secondary" className={STATUS[p.status]}>
+                    <Badge variant={STATUS[p.status]} className="capitalize">
                       {p.status}
                     </Badge>
                   </TableCell>
                   <TableCell className="text-right space-x-1">
                     {p.status !== "paid" && (
-                      <Button variant="ghost" size="sm" onClick={() => markPaid(p)}>
+                      <Button variant="tableActionPrimary" size="sm" onClick={() => markPaid(p)}>
                         Mark paid
                       </Button>
                     )}
                     {p.status !== "paid" && (
-                      <Button variant="ghost" size="sm" onClick={() => remind(p)}>
+                      <Button variant="tableAction" size="sm" onClick={() => remind(p)}>
                         Remind
                       </Button>
                     )}
@@ -229,8 +238,8 @@ function PaymentsPage() {
               ))}
             </TableBody>
           </Table>
-        </CardContent>
-      </Card>
+        </div>
+      </section>
     </DashboardShell>
   );
 }

@@ -13,6 +13,7 @@ import {
   MessagesSquare,
   WashingMachine,
   Tag,
+  CarFront,
 } from "lucide-react";
 import type { NavGroup } from "@/components/layout/sidebar";
 
@@ -90,6 +91,7 @@ export const TENANT_NAV: NavGroup[] = [
       { label: "Dashboard", to: "/tenant/dashboard", icon: LayoutDashboard },
       { label: "My room", to: "/tenant/room", icon: BedDouble },
       { label: "Rent & receipts", to: "/tenant/payments", icon: CreditCard },
+      { label: "Vehicles", to: "/tenant/vehicles", icon: CarFront },
     ],
   },
   {

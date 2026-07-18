@@ -120,7 +120,7 @@ function PropertiesPage() {
         {workspaces.map((w) => {
           const occ = Math.round((w.occupiedBeds / w.totalBeds) * 100);
           return (
-            <Card key={w.id} className="border-border/70">
+            <Card key={w.id} className="border-border-default">
               <CardContent className="p-5">
                 <div className="flex items-start justify-between">
                   <div className="flex items-center gap-3">
@@ -175,7 +175,7 @@ function PropertiesPage() {
                   <Stat icon={Building2} label="Occupancy" value={`${occ}%`} />
                 </div>
                 <div className="mt-4 flex items-center justify-between">
-                  <Badge variant="secondary" className="bg-success/10 text-success">
+                  <Badge variant="success" className="font-bold border-2 shadow-sm">
                     Active
                   </Badge>
                   <Button
@@ -208,7 +208,7 @@ function Stat({
   value: string;
 }) {
   return (
-    <div className="rounded-md border border-border/70 bg-muted/30 p-2">
+    <div className="rounded-md border border-border-default bg-surface-raised p-2">
       <Icon className="mx-auto h-3.5 w-3.5 text-muted-foreground" />
       <p className="mt-1 text-sm font-semibold">{value}</p>
       <p className="text-[10px] uppercase tracking-wider text-muted-foreground">{label}</p>

@@ -32,9 +32,10 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { useAuth } from "@/providers/auth-provider";
+import { useWorkspace } from "@/providers/workspace-provider";
 import { OWNER_NAV } from "@/config/navigation";
 import { KpiCard } from "@/components/layout/kpi-card";
-import { useLocalCollection } from "@/lib/local-store";
+import { useApiCollection } from "@/hooks/use-api-collection";
 import { shortId } from "@/lib/actions";
 import { AC_OPTIONS, useRoomConfig, type AcOption } from "@/lib/room-config";
 
@@ -147,16 +148,20 @@ const SEED: Room[] = [
   },
 ];
 
-const STATUS: Record<Status, string> = {
-  occupied: "bg-success/10 text-success",
-  partial: "bg-warning/10 text-warning",
-  vacant: "bg-muted text-muted-foreground",
-  maintenance: "bg-destructive/10 text-destructive",
+const STATUS: Record<Status, "success" | "warning" | "info" | "danger"> = {
+  occupied: "success",
+  partial: "warning",
+  vacant: "info",
+  maintenance: "danger",
 };
 
 function RoomsPage() {
   const { user } = useAuth();
-  const { items, add, update, remove } = useLocalCollection<Room>("hostly.owner.rooms", SEED);
+  const { activeWorkspace } = useWorkspace();
+  const { items, add, update, remove } = useApiCollection<Room>("/api/rooms", {
+    params: { workspaceId: activeWorkspace?.id },
+    enabled: !!activeWorkspace?.id,
+  });
   const [config] = useRoomConfig();
   const [q, setQ] = useState("");
   const [open, setOpen] = useState(false);
@@ -218,13 +223,14 @@ function RoomsPage() {
     });
     setOpen(true);
   }
-  function save() {
+  async function save() {
     if (!form.room.trim() || !form.rent.trim()) {
       toast.error("Room number and rent are required");
       return;
     }
     const type = form.ac === "AC" ? `${form.baseType} AC` : form.baseType;
-    const payload: Omit<Room, "id"> = {
+    const payload = {
+      workspace_id: activeWorkspace?.id ?? "",
       room: form.room,
       floor: form.floor,
       type,
@@ -232,18 +238,26 @@ function RoomsPage() {
       beds: form.beds,
       status: form.status,
     };
-    if (editing) {
-      update(editing.id, payload);
-      toast.success(`Room ${form.room} updated`);
-    } else {
-      add({ id: shortId("r"), ...payload });
-      toast.success(`Room ${form.room} added`);
+    try {
+      if (editing) {
+        await update(editing.id, payload);
+        toast.success(`Room ${form.room} updated`);
+      } else {
+        await add(payload as Omit<Room, "id">);
+        toast.success(`Room ${form.room} added`);
+      }
+      setOpen(false);
+    } catch {
+      toast.error("Failed to save room");
     }
-    setOpen(false);
   }
-  function del(r: Room) {
-    remove(r.id);
-    toast.success(`Room ${r.room} removed`);
+  async function del(r: Room) {
+    try {
+      await remove(r.id);
+      toast.success(`Room ${r.room} removed`);
+    } catch {
+      toast.error("Failed to remove room");
+    }
   }
 
   return (
@@ -272,14 +286,13 @@ function RoomsPage() {
         />
       </div>
 
-      <Card className="mt-6 border-border/70">
-        <CardContent className="p-0">
-          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border/70 p-4">
+      <section className="w-full mt-6">
+        <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
             <div className="relative w-full max-w-xs">
               <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
                 placeholder="Search rooms…"
-                className="pl-8"
+                className="pl-8 bg-input/20 border-border text-foreground placeholder:text-muted-foreground focus-visible:ring-1 focus-visible:ring-ring"
                 value={q}
                 onChange={(e) => setQ(e.target.value)}
               />
@@ -404,7 +417,8 @@ function RoomsPage() {
               </DialogContent>
             </Dialog>
           </div>
-          <Table>
+          <div className="w-full overflow-x-auto">
+            <Table>
             <TableHeader>
               <TableRow>
                 <TableHead>Room</TableHead>
@@ -419,22 +433,22 @@ function RoomsPage() {
             <TableBody>
               {filtered.map((r) => (
                 <TableRow key={r.id}>
-                  <TableCell className="font-semibold">{r.room}</TableCell>
-                  <TableCell className="text-muted-foreground">{r.floor}</TableCell>
-                  <TableCell>{r.type}</TableCell>
-                  <TableCell className="font-medium">{r.rent}</TableCell>
-                  <TableCell className="font-mono text-xs">{r.beds}</TableCell>
+                  <TableCell className="font-semibold text-foreground dark:text-[#F8FAFC]">{r.room}</TableCell>
+                  <TableCell className="text-muted-foreground dark:text-[#94A3B8] font-medium">{r.floor}</TableCell>
+                  <TableCell className="text-muted-foreground dark:text-[#A8B4C5] font-medium">{r.type}</TableCell>
+                  <TableCell className="font-semibold text-foreground dark:text-[#F8FAFC] tabular-nums">{r.rent}</TableCell>
+                  <TableCell className="font-mono text-xs text-muted-foreground dark:text-[#A8B4C5]">{r.beds}</TableCell>
                   <TableCell>
-                    <Badge variant="secondary" className={STATUS[r.status]}>
+                    <Badge variant={STATUS[r.status]} className="capitalize">
                       {r.status}
                     </Badge>
                   </TableCell>
                   <TableCell className="text-right space-x-1">
-                    <Button variant="ghost" size="sm" onClick={() => openEdit(r)}>
+                    <Button variant="tableActionPrimary" size="sm" onClick={() => openEdit(r)}>
                       Edit
                     </Button>
-                    <Button variant="ghost" size="icon" onClick={() => del(r)}>
-                      <Trash2 className="h-4 w-4 text-destructive" />
+                    <Button variant="tableActionDestructive" size="icon" onClick={() => del(r)}>
+                      <Trash2 className="h-4 w-4 text-destructive dark:text-destructive-foreground" strokeWidth={2.5} />
                     </Button>
                   </TableCell>
                 </TableRow>
@@ -447,9 +461,9 @@ function RoomsPage() {
                 </TableRow>
               )}
             </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+            </Table>
+          </div>
+      </section>
     </DashboardShell>
   );
 }

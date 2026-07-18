@@ -69,7 +69,7 @@ function MyRoomPage() {
       navGroups={TENANT_NAV}
     >
       <div className="grid gap-4 lg:grid-cols-3">
-        <Card className="lg:col-span-2 border-border/70">
+        <Card className="lg:col-span-2 border-border-default">
           <CardHeader>
             <div className="flex items-start justify-between gap-4">
               <div>
@@ -78,7 +78,7 @@ function MyRoomPage() {
                   <MapPin className="h-3.5 w-3.5" /> Greenhaven Residency, Indiranagar
                 </p>
               </div>
-              <Badge variant="secondary" className="bg-success/10 text-success">
+              <Badge variant="success" className="font-bold border-2 shadow-sm">
                 Occupied
               </Badge>
             </div>
@@ -98,7 +98,7 @@ function MyRoomPage() {
                 {AMENITIES.map(({ icon: Icon, label }) => (
                   <div
                     key={label}
-                    className="flex items-center gap-2 rounded-md border border-border/70 bg-muted/30 p-3 text-sm"
+                    className="flex items-center gap-2 rounded-md border border-border-default bg-surface-raised p-3 text-sm"
                   >
                     <Icon className="h-4 w-4 text-primary" />
                     <span className="truncate">{label}</span>
@@ -109,7 +109,7 @@ function MyRoomPage() {
           </CardContent>
         </Card>
 
-        <Card className="border-border/70">
+        <Card className="border-border-default">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base">
               <Users className="h-4 w-4" /> Roommates

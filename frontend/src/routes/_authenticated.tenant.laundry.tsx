@@ -14,10 +14,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { toast } from "sonner";
 import { useAuth } from "@/providers/auth-provider";
 import { TENANT_NAV } from "@/config/navigation";
 import { cn } from "@/lib/utils";
+import { useApiCollection } from "@/hooks/use-api-collection";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/tenant/laundry")({
   head: () => ({ meta: [{ title: "Laundry booking · Hostly" }] }),
@@ -80,30 +81,39 @@ function LaundryPage() {
   const [slot, setSlot] = useState<string | null>(null);
   const [service, setService] = useState("wash_dry");
   const [loadKg, setLoadKg] = useState("3");
-  const [bookings, setBookings] = useState<Booking[]>(INITIAL_BOOKINGS);
+  const { items: bookings, add } = useApiCollection<Booking>("/api/laundry", {
+    params: { userId: user?.id },
+    enabled: !!user?.id,
+  });
 
   if (!user) return null;
   if (user.role !== "tenant") return <Navigate to="/unauthorized" />;
 
   const day = NEXT_DAYS.find((d) => d.key === dayKey)!;
 
-  function confirm() {
+  async function confirm() {
     if (!slot) {
       toast.error("Pick a time slot first");
       return;
     }
-    const b: Booking = {
-      id: `L-${Math.floor(Math.random() * 900 + 100)}`,
-      date: day.label,
-      slot,
-      service:
-        service === "wash_dry" ? "Wash & dry" : service === "wash" ? "Wash only" : "Iron & fold",
-      machine: `Machine ${Math.floor(Math.random() * 3) + 1}`,
-      status: "upcoming",
-    };
-    setBookings([b, ...bookings]);
-    setSlot(null);
-    toast.success(`Slot booked for ${day.label}, ${b.slot}`);
+    const serviceLabel =
+      service === "wash_dry" ? "Wash & dry" : service === "wash" ? "Wash only" : "Iron & fold";
+    const machineName = `Machine ${Math.floor(Math.random() * 3) + 1}`;
+    try {
+      await add({
+        userId: user?.id || "",
+        workspaceId: user?.workspaceIds?.[0] || "",
+        date: day.label,
+        slot,
+        service: serviceLabel,
+        machine: machineName,
+        status: "upcoming",
+      } as Omit<Booking, "id">);
+      setSlot(null);
+      toast.success(`Slot booked for ${day.label}, ${slot}`);
+    } catch {
+      toast.error("Failed to book laundry slot");
+    }
   }
 
   return (
@@ -113,7 +123,7 @@ function LaundryPage() {
       navGroups={TENANT_NAV}
     >
       <div className="grid gap-4 lg:grid-cols-3">
-        <Card className="lg:col-span-2 border-border/70">
+        <Card className="lg:col-span-2 border-border-default">
           <CardHeader className="pb-3">
             <CardTitle className="flex items-center gap-2 text-base">
               <CalendarDays className="h-4 w-4" /> Choose a day
@@ -135,7 +145,7 @@ function LaundryPage() {
                       "flex flex-col items-center gap-0.5 rounded-md border py-2 text-sm transition-colors",
                       active
                         ? "border-primary bg-primary text-primary-foreground"
-                        : "border-border/70 bg-background hover:bg-accent",
+                        : "border-border-default bg-background hover:bg-accent",
                     )}
                   >
                     <span className="text-[10px] font-medium uppercase tracking-wider opacity-80">
@@ -162,11 +172,11 @@ function LaundryPage() {
                     className={cn(
                       "rounded-md border px-3 py-2.5 text-sm font-medium transition-colors",
                       !s.available &&
-                        "cursor-not-allowed border-dashed border-border/70 bg-muted/50 text-muted-foreground line-through",
+                        "cursor-not-allowed border-dashed border-border-default bg-surface-raised text-muted-foreground line-through dark:bg-[rgba(30,41,59,0.52)] dark:border-[rgba(148,163,184,0.16)] dark:text-[#718096]",
                       s.available &&
                         !active &&
-                        "border-border/70 bg-background hover:border-primary/50 hover:bg-accent",
-                      active && "border-primary bg-primary/10 text-primary",
+                        "border-border-default bg-background hover:border-primary/50 hover:bg-accent dark:bg-[#18283F] dark:border-[rgba(148,163,184,0.16)] dark:text-[#F1F5F9] dark:hover:bg-[#203552] dark:hover:border-[rgba(96,165,250,0.30)]",
+                      active && "border-primary bg-primary/10 text-primary dark:bg-[rgba(79,110,247,0.20)] dark:border-[#5B7CFA] dark:text-[#AFC2FF]",
                     )}
                   >
                     {s.time}
@@ -178,7 +188,7 @@ function LaundryPage() {
           </CardContent>
         </Card>
 
-        <Card className="border-border/70">
+        <Card className="border-border-default">
           <CardHeader className="pb-3">
             <CardTitle className="flex items-center gap-2 text-base">
               <Package className="h-4 w-4" /> Booking details
@@ -209,7 +219,7 @@ function LaundryPage() {
                 onChange={(e) => setLoadKg(e.target.value)}
               />
             </div>
-            <div className="rounded-md border border-border/70 bg-muted/30 p-3 text-sm">
+            <div className="rounded-md border border-border-default bg-surface-raised p-3 text-sm">
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Day</span>
                 <span className="font-medium">{day.label}</span>
@@ -218,7 +228,7 @@ function LaundryPage() {
                 <span className="text-muted-foreground">Slot</span>
                 <span className="font-medium">{slot ?? "—"}</span>
               </div>
-              <div className="mt-2 flex justify-between border-t border-border/70 pt-2">
+              <div className="mt-2 flex justify-between border-t border-border-default pt-2">
                 <span className="text-muted-foreground">Charge</span>
                 <span className="font-semibold">Included</span>
               </div>
@@ -230,7 +240,7 @@ function LaundryPage() {
         </Card>
       </div>
 
-      <Card className="mt-6 border-border/70">
+      <Card className="mt-6 border-border-default">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-base">
             <WashingMachine className="h-4 w-4" /> Your bookings
@@ -240,7 +250,7 @@ function LaundryPage() {
           {bookings.map((b) => (
             <div
               key={b.id}
-              className="flex items-center justify-between rounded-md border border-border/70 p-3"
+              className="flex items-center justify-between rounded-md border border-border-default p-3"
             >
               <div>
                 <p className="text-sm font-medium">
@@ -251,10 +261,7 @@ function LaundryPage() {
                 </p>
               </div>
               <Badge
-                variant="secondary"
-                className={cn(
-                  b.status === "upcoming" ? "bg-info/10 text-info" : "bg-success/10 text-success",
-                )}
+                variant={b.status === "upcoming" ? "info" : "success"}
               >
                 {b.status === "upcoming" ? "Upcoming" : "Completed"}
               </Badge>

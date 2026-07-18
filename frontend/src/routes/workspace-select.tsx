@@ -16,12 +16,12 @@ export const Route = createFileRoute("/workspace-select")({
 });
 
 const ACCENT: Record<string, string> = {
-  blue: "bg-info/15 text-info",
+  blue: "bg-info/15 text-info dark:bg-info dark:text-info-foreground",
   violet:
     "bg-[oklch(0.93_0.05_300)] text-[oklch(0.45_0.18_300)] dark:bg-[oklch(0.3_0.08_300)] dark:text-[oklch(0.85_0.12_300)]",
-  amber: "bg-warning/20 text-warning-foreground",
-  emerald: "bg-success/15 text-success",
-  rose: "bg-destructive/10 text-destructive",
+  amber: "bg-warning/20 text-warning-foreground dark:bg-warning dark:text-warning-foreground",
+  emerald: "bg-success/15 text-success dark:bg-success dark:text-success-foreground",
+  rose: "bg-destructive/10 text-destructive dark:bg-destructive dark:text-destructive-foreground",
 };
 
 function WorkspaceSelectPage() {
@@ -94,7 +94,7 @@ function WorkspaceSelectPage() {
                     onClick={() => choose(w.id)}
                     className="group w-full text-left outline-none"
                   >
-                    <Card className="border-border/70 p-5 transition-all hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-[var(--shadow-elevation-3)] group-focus-visible:ring-2 group-focus-visible:ring-ring">
+                    <Card className="border-border-default p-5 transition-all hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-[var(--shadow-elevation-3)] group-focus-visible:ring-2 group-focus-visible:ring-ring">
                       <div className="flex items-start gap-4">
                         <span
                           className={cn(
@@ -148,7 +148,7 @@ function WorkspaceSelectPage() {
 
 function Stat({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded border border-border/60 bg-muted/30 px-2 py-1.5">
+    <div className="rounded border border-border-default bg-surface-raised px-2 py-1.5">
       <p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
         {label}
       </p>

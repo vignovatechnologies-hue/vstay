@@ -114,3 +114,12 @@ export function isStaffRole(role: UserRole): boolean {
     "cook",
   ].includes(role);
 }
+
+export function getDashboardRouteForRole(role: UserRole | string | null | undefined): string {
+  if (!role) return "/unauthorized";
+  if (role === "super_admin") return "/super-admin/dashboard";
+  if (role === "owner") return "/owner/dashboard";
+  if (role === "tenant") return "/tenant/dashboard";
+  if (isStaffRole(role as UserRole)) return "/staff/dashboard";
+  return "/unauthorized";
+}

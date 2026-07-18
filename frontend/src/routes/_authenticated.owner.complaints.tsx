@@ -21,10 +21,11 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { useWorkspace } from "@/providers/workspace-provider";
+import { useApiCollection } from "@/hooks/use-api-collection";
 import { useAuth } from "@/providers/auth-provider";
 import { OWNER_NAV } from "@/config/navigation";
 import { KpiCard } from "@/components/layout/kpi-card";
-import { useLocalCollection } from "@/lib/local-store";
 
 export const Route = createFileRoute("/_authenticated/owner/complaints")({
   head: () => ({ meta: [{ title: "Complaints · Hostly" }] }),
@@ -96,20 +97,24 @@ const SEED: Complaint[] = [
     status: "resolved",
   },
 ];
-const PRIO: Record<Prio, string> = {
-  high: "bg-destructive/10 text-destructive",
-  medium: "bg-warning/10 text-warning",
-  low: "bg-muted text-muted-foreground",
+const PRIO: Record<Prio, "danger" | "warning" | "info"> = {
+  high: "danger",
+  medium: "warning",
+  low: "info",
 };
-const STATUS: Record<CStatus, { label: string; className: string }> = {
-  open: { label: "Open", className: "bg-destructive/10 text-destructive" },
-  in_progress: { label: "In progress", className: "bg-warning/10 text-warning" },
-  resolved: { label: "Resolved", className: "bg-success/10 text-success" },
+const STATUS: Record<CStatus, { label: string; variant: "danger" | "warning" | "success" }> = {
+  open: { label: "Open", variant: "danger" },
+  in_progress: { label: "In progress", variant: "warning" },
+  resolved: { label: "Resolved", variant: "success" },
 };
 
 function ComplaintsPage() {
   const { user } = useAuth();
-  const { items, update } = useLocalCollection<Complaint>("hostly.owner.complaints", SEED);
+  const { activeWorkspace } = useWorkspace();
+  const { items, update } = useApiCollection<Complaint>("/api/complaints", {
+    params: { workspaceId: activeWorkspace?.id },
+    enabled: !!activeWorkspace?.id,
+  });
   const [filter, setFilter] = useState<"all" | CStatus>("all");
   const filtered = useMemo(
     () => (filter === "all" ? items : items.filter((i) => i.status === filter)),
@@ -119,9 +124,13 @@ function ComplaintsPage() {
   if (!user) return null;
   if (user.role !== "owner") return <Navigate to="/unauthorized" />;
 
-  function setStatus(c: Complaint, s: CStatus) {
-    update(c.id, { status: s });
-    toast.success(`${c.id} → ${STATUS[s].label}`);
+  async function setStatus(c: Complaint, s: CStatus) {
+    try {
+      await update(c.id, { status: s });
+      toast.success(`${c.id} → ${STATUS[s].label}`);
+    } catch {
+      toast.error("Failed to update status");
+    }
   }
 
   return (
@@ -153,10 +162,9 @@ function ComplaintsPage() {
         <KpiCard label="Avg. resolution" value="18 hrs" tone="up" icon={MessagesSquare} />
       </div>
 
-      <Card className="mt-6 border-border/70">
-        <CardContent className="p-0">
-          <div className="flex items-center justify-between border-b border-border/70 p-4">
-            <p className="text-sm font-medium">All complaints</p>
+      <section className="w-full mt-6">
+        <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
+          <h2 className="text-base font-semibold text-foreground dark:text-[#F8FAFC]">All complaints</h2>
             <Select value={filter} onValueChange={(v) => setFilter(v as "all" | CStatus)}>
               <SelectTrigger className="h-8 w-[150px]">
                 <Filter className="mr-1 h-3.5 w-3.5" />
@@ -170,7 +178,8 @@ function ComplaintsPage() {
               </SelectContent>
             </Select>
           </div>
-          <Table>
+          <div className="w-full overflow-x-auto">
+            <Table>
             <TableHeader>
               <TableRow>
                 <TableHead>Ticket</TableHead>
@@ -187,21 +196,21 @@ function ComplaintsPage() {
             <TableBody>
               {filtered.map((c) => (
                 <TableRow key={c.id}>
-                  <TableCell className="font-mono text-xs">{c.id}</TableCell>
-                  <TableCell className="font-medium">{c.tenant}</TableCell>
-                  <TableCell className="font-mono text-xs text-muted-foreground">
+                  <TableCell className="font-mono text-xs text-muted-foreground dark:text-[#CBD5E1] font-medium">{c.id}</TableCell>
+                  <TableCell className="font-semibold text-foreground dark:text-[#F8FAFC]">{c.tenant}</TableCell>
+                  <TableCell className="font-mono text-xs text-muted-foreground dark:text-[#718096]">
                     {c.room}
                   </TableCell>
-                  <TableCell className="text-muted-foreground">{c.category}</TableCell>
-                  <TableCell>{c.subject}</TableCell>
-                  <TableCell className="text-muted-foreground">{c.raised}</TableCell>
+                  <TableCell className="text-muted-foreground dark:text-[#A8B4C5] font-medium">{c.category}</TableCell>
+                  <TableCell className="text-muted-foreground dark:text-[#E2E8F0] font-medium">{c.subject}</TableCell>
+                  <TableCell className="text-muted-foreground dark:text-[#94A3B8] font-medium">{c.raised}</TableCell>
                   <TableCell>
-                    <Badge variant="secondary" className={PRIO[c.priority]}>
+                    <Badge variant={PRIO[c.priority]} className="capitalize">
                       {c.priority}
                     </Badge>
                   </TableCell>
                   <TableCell>
-                    <Badge variant="secondary" className={STATUS[c.status].className}>
+                    <Badge variant={STATUS[c.status].variant}>
                       {STATUS[c.status].label}
                     </Badge>
                   </TableCell>
@@ -220,9 +229,9 @@ function ComplaintsPage() {
                 </TableRow>
               ))}
             </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+            </Table>
+          </div>
+      </section>
     </DashboardShell>
   );
 }

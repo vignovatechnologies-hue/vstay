@@ -62,7 +62,7 @@ function ReportsPage() {
       </div>
 
       <div className="mt-6 grid gap-4 lg:grid-cols-2">
-        <Card className="border-border/70">
+        <Card className="border-border-default">
           <CardHeader>
             <CardTitle className="text-base">Owner sign-ups · last 6 months</CardTitle>
           </CardHeader>
@@ -84,7 +84,7 @@ function ReportsPage() {
           </CardContent>
         </Card>
 
-        <Card className="border-border/70">
+        <Card className="border-border-default">
           <CardHeader>
             <CardTitle className="text-base">Owners by city</CardTitle>
           </CardHeader>

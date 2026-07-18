@@ -121,7 +121,7 @@ function SettingsPage() {
       showWorkspaceSwitcher
     >
       <div className="grid gap-4 lg:grid-cols-3">
-        <Card className="lg:col-span-2 border-border/70">
+        <Card className="lg:col-span-2 border-border-default">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base">
               <Building2 className="h-4 w-4" /> Property details
@@ -166,7 +166,7 @@ function SettingsPage() {
           </CardContent>
         </Card>
 
-        <Card className="border-border/70">
+        <Card className="border-border-default">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base">
               <User className="h-4 w-4" /> Account
@@ -185,7 +185,7 @@ function SettingsPage() {
       </div>
 
       <div className="mt-4 grid gap-4 lg:grid-cols-3">
-        <Card className="lg:col-span-3 border-border/70">
+        <Card className="lg:col-span-3 border-border-default">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base">
               <Layers className="h-4 w-4" /> Floors & room types
@@ -272,7 +272,7 @@ function SettingsPage() {
           </CardContent>
         </Card>
 
-        <Card className="border-border/70">
+        <Card className="border-border-default">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base">
               <Bell className="h-4 w-4" /> Notifications
@@ -302,7 +302,7 @@ function SettingsPage() {
           </CardContent>
         </Card>
 
-        <Card className="border-border/70">
+        <Card className="border-border-default">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base">
               <CreditCard className="h-4 w-4" /> Billing
@@ -319,7 +319,7 @@ function SettingsPage() {
           </CardContent>
         </Card>
 
-        <Card className="border-border/70">
+        <Card className="border-border-default">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base">
               <Shield className="h-4 w-4" /> Security
@@ -393,7 +393,7 @@ function SettingsPage() {
             ].map((s) => (
               <div
                 key={s.d}
-                className="flex justify-between rounded-md border border-border/70 p-3"
+                className="flex justify-between rounded-md border border-border-default p-3"
               >
                 <div>
                   <p className="font-medium">{s.d}</p>

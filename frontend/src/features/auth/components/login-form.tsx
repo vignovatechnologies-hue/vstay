@@ -40,7 +40,7 @@ export function LoginForm() {
         navigate({ to: "/workspace-select" });
         return;
       }
-      navigate({ to: ROLE_HOME[result.user.role] });
+      navigate({ to: "/" });
     } catch (err) {
       setServerError(err instanceof Error ? err.message : "Login failed");
     }

@@ -22,8 +22,9 @@ import {
 import { toast } from "sonner";
 import { LoginForm } from "@/features/auth/components/login-form";
 import { Logo } from "@/components/brand/logo";
+import { ThemeToggle } from "@/components/layout/theme-toggle";
 import { useAuth } from "@/providers/auth-provider";
-import { ROLE_HOME } from "@/config/roles";
+import { getDashboardRouteForRole } from "@/config/roles";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -76,12 +77,12 @@ function LoginPage() {
     }
   }, [status, login, autoLoginLoading]);
 
-  // If already authenticated and not processing auto login, redirect to target dashboard
+  // If already authenticated and not processing auto login, route to dashboard
   if (status === "authenticated" && user && !autoLoginLoading) {
     if (user.role === "owner" && user.workspaceIds.length > 1 && !session?.workspaceId) {
       return <Navigate to="/workspace-select" />;
     }
-    return <Navigate to={ROLE_HOME[user.role]} />;
+    return <Navigate to={getDashboardRouteForRole(user.role)} />;
   }
 
   return (
@@ -135,10 +136,14 @@ function LoginPage() {
 
       {/* Right: forms container */}
       <section className="flex flex-col justify-between px-6 py-12 sm:px-10">
-        <div className="my-auto w-full mx-auto max-w-md">
-          <div className="mb-8 lg:hidden">
+        <div className="flex w-full items-center justify-between lg:justify-end mb-4">
+          <div className="lg:hidden">
             <Logo />
           </div>
+          <ThemeToggle />
+        </div>
+
+        <div className="my-auto w-full mx-auto max-w-md">
 
           {/* Role selector Tabs */}
           <div className="mb-8 flex rounded-lg bg-muted p-1 text-sm font-medium">
@@ -253,8 +258,7 @@ function SignupForm({ onSignupSuccess }: SignupFormProps) {
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [hostelName, setHostelName] = useState("");
-  const [planId, setPlanId] = useState<"monthly" | "yearly">("monthly");
-  const [password, setPassword] = useState("password");
+  const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
@@ -274,14 +278,13 @@ function SignupForm({ onSignupSuccess }: SignupFormProps) {
         email,
         phone,
         hostelName,
-        planId,
+        password,
       });
 
       toast.success(`Registration complete! Welcome ${fullName}`);
 
-      // Auto reload/navigate will occur once user session is loaded
-      // We write session and trigger mounting checks
-      window.location.reload();
+      // Redirect to pricing page for plan selection
+      window.location.href = "/pricing";
     } catch (err) {
       setError(err instanceof Error ? err.message : "Registration failed");
       setLoading(false);
@@ -362,58 +365,6 @@ function SignupForm({ onSignupSuccess }: SignupFormProps) {
         </div>
       </div>
 
-      {/* Subscription Plan Selector */}
-      <div className="space-y-2">
-        <Label>Select Subscription Plan</Label>
-        <div className="grid grid-cols-2 gap-3">
-          {/* Monthly Card */}
-          <div
-            onClick={() => setPlanId("monthly")}
-            className={`relative flex flex-col justify-between rounded-lg border p-4 cursor-pointer transition-all ${
-              planId === "monthly"
-                ? "border-primary bg-primary/5 ring-1 ring-primary"
-                : "border-border bg-card hover:bg-muted/40"
-            }`}
-          >
-            <div className="flex justify-between items-start">
-              <div>
-                <p className="text-xs font-semibold">Monthly Plan</p>
-                <p className="mt-1 text-lg font-bold text-foreground">
-                  ₹999<span className="text-xs font-normal text-muted-foreground">/mo</span>
-                </p>
-              </div>
-              {planId === "monthly" && <CheckCircle2 className="h-4 w-4 text-primary shrink-0" />}
-            </div>
-            <p className="mt-2 text-[10px] text-muted-foreground">
-              Flexible month-to-month billing
-            </p>
-          </div>
-
-          {/* Yearly Card */}
-          <div
-            onClick={() => setPlanId("yearly")}
-            className={`relative flex flex-col justify-between rounded-lg border p-4 cursor-pointer transition-all ${
-              planId === "yearly"
-                ? "border-primary bg-primary/5 ring-1 ring-primary"
-                : "border-border bg-card hover:bg-muted/40"
-            }`}
-          >
-            <div className="absolute top-2 right-2 bg-emerald-500 text-white text-[8px] font-bold px-1.5 py-0.5 rounded-full uppercase tracking-wide">
-              Save 15%
-            </div>
-            <div className="flex justify-between items-start">
-              <div>
-                <p className="text-xs font-semibold">Yearly Plan</p>
-                <p className="mt-1 text-lg font-bold text-foreground">
-                  ₹9,999<span className="text-xs font-normal text-muted-foreground">/yr</span>
-                </p>
-              </div>
-              {planId === "yearly" && <CheckCircle2 className="h-4 w-4 text-primary shrink-0" />}
-            </div>
-            <p className="mt-2 text-[10px] text-muted-foreground">Billed annually (Save ₹2,000+)</p>
-          </div>
-        </div>
-      </div>
 
       <div className="space-y-1.5">
         <Label htmlFor="signup-password">Password</Label>
@@ -423,10 +374,10 @@ function SignupForm({ onSignupSuccess }: SignupFormProps) {
             id="signup-password"
             type={showPassword ? "text" : "password"}
             className="pl-9 pr-10"
+            placeholder="Create a password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
-            disabled
           />
           <button
             type="button"
@@ -437,9 +388,6 @@ function SignupForm({ onSignupSuccess }: SignupFormProps) {
             {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
           </button>
         </div>
-        <p className="text-[10px] text-muted-foreground">
-          Password is preset to &quot;password&quot; for easy mock-auth login.
-        </p>
       </div>
 
       <Button type="submit" className="w-full mt-4" disabled={loading}>

@@ -12,7 +12,7 @@ interface KpiCardProps {
 
 export function KpiCard({ label, value, delta, tone = "neutral", icon: Icon }: KpiCardProps) {
   return (
-    <Card className="border-border/70 shadow-[var(--shadow-elevation-1)]">
+    <Card className="border-border-default shadow-[var(--shadow-elevation-1)]">
       <CardContent className="flex items-start gap-4 p-5">
         {Icon ? (
           <span className="grid h-10 w-10 place-items-center rounded-md bg-primary/10 text-primary">

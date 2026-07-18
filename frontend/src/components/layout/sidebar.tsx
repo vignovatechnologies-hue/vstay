@@ -24,7 +24,7 @@ export function Sidebar({ groups, footerSlot }: SidebarProps) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
 
   return (
-    <aside className="hidden h-dvh w-60 shrink-0 flex-col border-r border-sidebar-border bg-sidebar md:flex">
+    <aside className="hidden h-full min-h-0 w-60 shrink-0 flex-col border-r border-sidebar-border bg-sidebar md:flex">
       <div className="flex h-14 items-center border-b border-sidebar-border px-4">
         <Link to="/" className="rounded outline-none focus-visible:ring-2 focus-visible:ring-ring">
           <Logo />

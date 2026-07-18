@@ -1,0 +1,1 @@
+import{n as e}from"./local-store-CtFpdmxR.js";var t=[`Ground`,`First`,`Second`,`Third`,`Fourth`,`Fifth`],n=[`Single`,`Double`,`Triple`],r=[`Non-AC`,`AC`],i=`hostly.owner.room-config`,a={floors:t,types:n};function o(){return e(i,a)}export{o as i,t as n,n as r,r as t};

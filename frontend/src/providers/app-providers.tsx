@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
-import { ThemeProvider } from "./theme-provider";
-import { AuthProvider } from "./auth-provider";
-import { WorkspaceProvider } from "./workspace-provider";
+import { ThemeProvider } from "@/providers/theme-provider";
+import { AuthProvider } from "@/providers/auth-provider";
+import { WorkspaceProvider } from "@/providers/workspace-provider";
 
 export function AppProviders({ children }: { children: ReactNode }) {
   return (

@@ -12,8 +12,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/providers/auth-provider";
 import { SUPER_ADMIN_NAV } from "@/config/navigation";
-import { useLocalCollection } from "@/lib/local-store";
-import { shortId } from "@/lib/actions";
+import { useApiCollection } from "@/hooks/use-api-collection";
 
 export const Route = createFileRoute("/_authenticated/super-admin/announcements")({
   head: () => ({ meta: [{ title: "Announcements · Hostly" }] }),
@@ -26,7 +25,8 @@ type Post = {
   title: string;
   audience: string;
   author: string;
-  when: string;
+  when?: string;
+  createdAt?: string;
   status: PStatus;
   body: string;
 };
@@ -69,36 +69,39 @@ const SEED: Post[] = [
     body: "One free month per referral.",
   },
 ];
-const STATUS: Record<PStatus, string> = {
-  published: "bg-success/10 text-success",
-  scheduled: "bg-info/10 text-info",
-  draft: "bg-muted text-muted-foreground",
+const STATUS: Record<PStatus, "success" | "info" | "secondary"> = {
+  published: "success",
+  scheduled: "info",
+  draft: "secondary",
 };
 
 function AnnouncementsPage() {
   const { user } = useAuth();
-  const { items, add, remove } = useLocalCollection<Post>("hostly.sa.posts", SEED);
+  const { items, add, remove } = useApiCollection<Post>("/api/announcements");
   const [form, setForm] = useState({ title: "", audience: "All workspaces", body: "" });
 
   if (!user) return null;
   if (user.role !== "super_admin") return <Navigate to="/unauthorized" />;
 
-  function submit(status: PStatus) {
+  async function submit(status: PStatus) {
     if (!form.title.trim() || !form.body.trim()) {
       toast.error("Title and message are required");
       return;
     }
-    add({
-      id: shortId("p"),
-      title: form.title,
-      audience: form.audience,
-      author: user!.fullName,
-      when: "Just now",
-      status,
-      body: form.body,
-    });
-    setForm({ title: "", audience: "All workspaces", body: "" });
-    toast.success(status === "published" ? "Announcement published" : "Draft saved");
+    try {
+      await add({
+        title: form.title,
+        audience: form.audience,
+        author: user!.fullName,
+        status,
+        body: form.body,
+        pinned: status === "published",
+      } as any);
+      setForm({ title: "", audience: "All workspaces", body: "" });
+      toast.success(status === "published" ? "Announcement published" : "Draft saved");
+    } catch {
+      toast.error("Failed to post announcement");
+    }
   }
 
   return (
@@ -130,30 +133,34 @@ function AnnouncementsPage() {
       </div>
 
       <div className="mt-6 grid gap-4 lg:grid-cols-3">
-        <Card className="lg:col-span-2 border-border/70">
+        <Card className="lg:col-span-2 border-border-default">
           <CardHeader>
             <CardTitle className="text-base">Recent announcements</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
             {items.map((p) => (
-              <div key={p.id} className="rounded-md border border-border/70 p-4">
+              <div key={p.id} className="rounded-md border border-border-default p-4">
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
                     <p className="text-sm font-semibold">{p.title}</p>
                     <p className="mt-1 text-xs text-muted-foreground">
-                      {p.audience} · by {p.author} · {p.when}
+                      {p.audience} · by {p.author} · {p.when || (p.createdAt ? new Date(p.createdAt).toLocaleDateString() : "Just now")}
                     </p>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Badge variant="secondary" className={STATUS[p.status]}>
+                    <Badge variant={STATUS[p.status]} className="font-bold border-2 shadow-sm capitalize">
                       {p.status}
                     </Badge>
                     <Button
                       size="sm"
                       variant="ghost"
-                      onClick={() => {
-                        remove(p.id);
-                        toast.success("Deleted");
+                      onClick={async () => {
+                        try {
+                          await remove(p.id);
+                          toast.success("Announcement removed");
+                        } catch {
+                          toast.error("Failed to remove announcement");
+                        }
                       }}
                     >
                       Delete
@@ -166,7 +173,7 @@ function AnnouncementsPage() {
           </CardContent>
         </Card>
 
-        <Card className="border-border/70">
+        <Card className="border-border-default">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base">
               <Plus className="h-4 w-4" /> New announcement

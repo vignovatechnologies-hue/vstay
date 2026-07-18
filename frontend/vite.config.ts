@@ -4,7 +4,10 @@ import tailwindcss from "@tailwindcss/vite";
 import tsConfigPaths from "vite-tsconfig-paths";
 import react from "@vitejs/plugin-react";
 
-export default defineConfig({
+export default defineConfig(({ mode }) => ({
+  build: {
+    outDir: mode === "preview" ? "hostly-preview" : "dist",
+  },
   plugins: [
     tanstackStart({
       server: { entry: "server" },
@@ -13,4 +16,4 @@ export default defineConfig({
     tailwindcss(),
     tsConfigPaths(),
   ],
-});
+}));

@@ -9,5 +9,8 @@ export interface Workspace {
   occupiedBeds: number;
   accent: "blue" | "violet" | "emerald" | "rose";
   planId?: "monthly" | "yearly";
+  subscriptionStatus?: string;
+  stripeSubscriptionId?: string;
+  stripeCustomerId?: string;
   createdAt: string;
 }

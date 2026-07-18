@@ -1,0 +1,605 @@
+const fs = require('fs');
+const path = require('path');
+
+const css = `
+:root {
+  --bg-main: #020617;
+  --bg-deep: #030712;
+  --bg-side: #050A17;
+  --bg-head: #0A1426;
+  --card-1: #111C2E;
+  --card-2: #0D1728;
+  --surf-1: #152238;
+  --surf-2: #0A1424;
+  --border-subtle: #1E2B43;
+  --border-std: #263650;
+  --border-strong: #314462;
+  --text-primary: #F8FAFC;
+  --text-body: #E2E8F0;
+  --text-sec: #CBD5E1;
+  --text-muted: #8B9AAF;
+  --text-very-muted: #64748B;
+  --blue-primary: #2563EB;
+  --blue-bright: #3B82F6;
+  --blue-light: #60A5FA;
+  --blue-soft: rgba(37, 99, 235, 0.14);
+  --success: #10B981;
+  --success-bright: #34D399;
+  --warning: #F59E0B;
+  --warning-bright: #FBBF24;
+  --danger: #EF4444;
+  --danger-bright: #F87171;
+  --chart-indigo: #6366F1;
+  --chart-cyan: #38BDF8;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  background-color: var(--bg-main);
+  color: var(--text-body);
+  height: 100vh;
+  overflow: hidden;
+  display: flex;
+}
+
+/* Shell Layout */
+.shell { display: flex; height: 100vh; width: 100vw; }
+.side {
+  width: 260px;
+  background-color: var(--bg-side);
+  border-right: 1px solid var(--border-std);
+  display: flex;
+  flex-direction: column;
+  transition: width 0.3s;
+}
+.side-header {
+  height: 64px;
+  display: flex;
+  align-items: center;
+  padding: 0 1.5rem;
+  border-bottom: 1px solid var(--border-subtle);
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  gap: 8px;
+}
+.side-header .badge {
+  font-size: 0.65rem;
+  background: var(--blue-soft);
+  color: var(--blue-bright);
+  padding: 2px 6px;
+  border-radius: 4px;
+  text-transform: uppercase;
+}
+.nav { flex: 1; padding: 1rem 0; overflow-y: auto; }
+.nav-item {
+  display: flex;
+  align-items: center;
+  padding: 0.75rem 1.5rem;
+  color: var(--text-sec);
+  text-decoration: none;
+  font-size: 0.95rem;
+  font-weight: 500;
+  cursor: pointer;
+  border-left: 3px solid transparent;
+  transition: all 0.2s;
+}
+.nav-item:hover { background-color: var(--surf-2); color: var(--text-primary); }
+.nav-item.active {
+  background-color: var(--blue-soft);
+  color: var(--blue-bright);
+  border-left-color: var(--blue-primary);
+}
+
+.main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.top {
+  height: 64px;
+  background-color: var(--bg-head);
+  border-bottom: 1px solid var(--border-std);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 2rem;
+}
+.top-title { font-size: 1.125rem; font-weight: 600; color: var(--text-primary); }
+.top-controls { display: flex; align-items: center; gap: 1rem; }
+
+/* Role Switcher */
+.role-switch {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.role-switch label { font-size: 0.85rem; color: var(--text-muted); }
+.role-switch select {
+  background-color: var(--card-2);
+  color: var(--text-primary);
+  border: 1px solid var(--border-strong);
+  padding: 0.4rem 2rem 0.4rem 0.75rem;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  cursor: pointer;
+  outline: none;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%23CBD5E1'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.5rem center;
+  background-size: 1rem;
+}
+.role-switch select:focus { border-color: var(--blue-primary); }
+
+.content {
+  flex: 1;
+  padding: 2rem;
+  overflow-y: auto;
+  background-color: var(--bg-main);
+}
+
+/* UI Components */
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+.kpi-card {
+  background-color: var(--card-1);
+  border: 1px solid var(--border-std);
+  border-radius: 12px;
+  padding: 1.5rem;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+.kpi-title { font-size: 0.875rem; color: var(--text-sec); margin-bottom: 0.5rem; font-weight: 500; }
+.kpi-value { font-size: 2rem; font-weight: 700; color: var(--text-primary); margin-bottom: 0.5rem; }
+.kpi-trend { font-size: 0.85rem; display: flex; align-items: center; gap: 4px; }
+.kpi-trend.up { color: var(--success-bright); }
+.kpi-trend.down { color: var(--danger-bright); }
+.kpi-trend.neutral { color: var(--text-muted); }
+
+.section-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+.panel {
+  background-color: var(--card-1);
+  border: 1px solid var(--border-std);
+  border-radius: 12px;
+  overflow: hidden;
+}
+.panel-header {
+  padding: 1.25rem 1.5rem;
+  border-bottom: 1px solid var(--border-subtle);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.panel-title { font-size: 1.1rem; font-weight: 600; color: var(--text-primary); }
+.panel-body { padding: 1.5rem; }
+
+/* Tables */
+table { width: 100%; border-collapse: collapse; text-align: left; }
+th {
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  font-weight: 600;
+  padding: 0.75rem 1.5rem;
+  border-bottom: 1px solid var(--border-strong);
+  background: var(--card-2);
+}
+td {
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid var(--border-subtle);
+  font-size: 0.95rem;
+  color: var(--text-body);
+}
+tr:last-child td { border-bottom: none; }
+tr:hover td { background-color: var(--surf-2); }
+
+/* Badges */
+.status {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.status.success { background: rgba(16, 185, 129, 0.15); color: var(--success-bright); border: 1px solid rgba(16, 185, 129, 0.2); }
+.status.warning { background: rgba(245, 158, 11, 0.15); color: var(--warning-bright); border: 1px solid rgba(245, 158, 11, 0.2); }
+.status.danger { background: rgba(239, 68, 68, 0.15); color: var(--danger-bright); border: 1px solid rgba(239, 68, 68, 0.2); }
+.status.info { background: rgba(59, 130, 246, 0.15); color: var(--blue-light); border: 1px solid rgba(59, 130, 246, 0.2); }
+
+/* Progress Bars */
+.progress-group { margin-bottom: 1rem; }
+.progress-group:last-child { margin-bottom: 0; }
+.progress-header { display: flex; justify-content: space-between; font-size: 0.9rem; margin-bottom: 0.5rem; color: var(--text-sec); }
+.progress-track { height: 8px; background: var(--surf-1); border-radius: 4px; overflow: hidden; }
+.progress-fill { height: 100%; border-radius: 4px; }
+
+/* Utility */
+.text-muted { color: var(--text-muted); font-size: 0.85rem; }
+.font-medium { font-weight: 500; color: var(--text-primary); }
+.flex-between { display: flex; justify-content: space-between; align-items: center; }
+.mt-4 { margin-top: 1rem; }
+
+/* Pricing Cards */
+.pricing-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 2rem; max-width: 900px; margin: 0 auto; }
+.pricing-card { background: var(--card-1); border: 1px solid var(--border-std); border-radius: 16px; padding: 2rem; position: relative; }
+.pricing-card.popular { border-color: var(--blue-primary); box-shadow: 0 0 0 1px var(--blue-primary); }
+.pricing-card.popular::before { content: "Most Popular"; position: absolute; top: -12px; left: 50%; transform: translateX(-50%); background: var(--blue-primary); color: white; padding: 2px 12px; border-radius: 12px; font-size: 0.75rem; font-weight: 600; text-transform: uppercase; }
+.price { font-size: 3rem; font-weight: 700; color: var(--text-primary); margin: 1rem 0; }
+.price span { font-size: 1rem; color: var(--text-muted); font-weight: 400; }
+.features { list-style: none; margin: 2rem 0; }
+.features li { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1rem; color: var(--text-sec); }
+.features li svg { color: var(--success-bright); width: 20px; height: 20px; }
+.btn { display: block; width: 100%; padding: 0.875rem; text-align: center; border-radius: 8px; font-weight: 600; cursor: pointer; text-decoration: none; transition: 0.2s; border: none; }
+.btn-primary { background: var(--blue-primary); color: white; }
+.btn-primary:hover { background: var(--blue-bright); }
+.btn-outline { background: transparent; border: 1px solid var(--border-strong); color: var(--text-primary); }
+.btn-outline:hover { background: var(--surf-1); }
+
+/* Empty / Fallback */
+.empty-state { text-align: center; padding: 4rem 2rem; color: var(--text-muted); border: 1px dashed var(--border-strong); border-radius: 12px; }
+
+/* Toast */
+#toast { position: fixed; bottom: 2rem; right: 2rem; background: var(--blue-primary); color: white; padding: 1rem 1.5rem; border-radius: 8px; font-weight: 500; box-shadow: 0 10px 25px rgba(0,0,0,0.3); transform: translateY(100px); opacity: 0; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); z-index: 1000; }
+#toast.show { transform: translateY(0); opacity: 1; }
+
+@media (max-width: 768px) {
+  .side { position: fixed; z-index: 50; transform: translateX(-100%); }
+  .side.open { transform: translateX(0); }
+  .section-grid { grid-template-columns: 1fr; }
+}
+`;
+
+const js = `
+const data = {
+  roles: {
+    owner: {
+      name: "Owner",
+      nav: [
+        { id: "dashboard", label: "Dashboard", icon: "📊" },
+        { id: "properties", label: "Properties", icon: "🏢" },
+        { id: "rooms", label: "Rooms", icon: "🚪" },
+        { id: "tenants", label: "Tenants", icon: "👥" },
+        { id: "payments", label: "Payments", icon: "💳" },
+        { id: "complaints", label: "Complaints", icon: "🎫" },
+        { id: "staff", label: "Staff", icon: "👨‍🔧" },
+        { id: "reports", label: "Reports", icon: "📈" },
+        { id: "pricing", label: "Subscription", icon: "💎" },
+        { id: "settings", label: "Settings", icon: "⚙️" }
+      ],
+      dashboard: {
+        kpis: [
+          { label: "Total Revenue (MTD)", value: "₹2,45,000", trend: "+12.5%", trendType: "up" },
+          { label: "Occupancy Rate", value: "88%", trend: "+2.1%", trendType: "up" },
+          { label: "Pending Payments", value: "14", trend: "-3", trendType: "success" },
+          { label: "Active Complaints", value: "5", trend: "+2", trendType: "down" }
+        ],
+        tables: {
+          recentPayments: [
+            { tenant: "Rahul Sharma", room: "101-A", amount: "₹8,000", status: "Paid", date: "Today" },
+            { tenant: "Priya Singh", room: "205-B", amount: "₹9,500", status: "Pending", date: "Yesterday" },
+            { tenant: "Amit Patel", room: "304-A", amount: "₹8,000", status: "Paid", date: "2 days ago" },
+            { tenant: "Sneha Reddy", room: "102-C", amount: "₹12,000", status: "Overdue", date: "5 days ago" }
+          ]
+        },
+        progress: [
+          { label: "Lotus Residency", value: "95%", color: "var(--success-bright)" },
+          { label: "Sunrise PG", value: "82%", color: "var(--blue-light)" },
+          { label: "Bluebell Hostel", value: "65%", color: "var(--warning-bright)" }
+        ]
+      }
+    },
+    super_admin: {
+      name: "Super Admin",
+      nav: [
+        { id: "dashboard", label: "Platform Overview", icon: "🌐" },
+        { id: "organizations", label: "Organizations", icon: "🏛️" },
+        { id: "owners", label: "PG Owners", icon: "👔" },
+        { id: "properties", label: "Properties", icon: "🏢" },
+        { id: "revenue", label: "Platform Revenue", icon: "💰" },
+        { id: "subscriptions", label: "Subscriptions", icon: "🔄" },
+        { id: "plans", label: "Plans & Pricing", icon: "🏷️" },
+        { id: "reports", label: "Reports", icon: "📊" },
+        { id: "announcements", label: "Announcements", icon: "📢" },
+        { id: "audit", label: "Audit Logs", icon: "📋" },
+        { id: "settings", label: "Global Settings", icon: "⚙️" }
+      ],
+      dashboard: {
+        kpis: [
+          { label: "Total Organizations", value: "142", trend: "+8", trendType: "up" },
+          { label: "Active Properties", value: "485", trend: "+24", trendType: "up" },
+          { label: "Platform MRR", value: "₹8,45,000", trend: "+15.2%", trendType: "up" },
+          { label: "Active Users", value: "12.4k", trend: "+840", trendType: "up" }
+        ],
+        tables: {
+          recentPayments: [
+            { org: "Metro Stays", plan: "Growth", amount: "₹9,999", status: "Paid", date: "Today" },
+            { org: "Student Nest", plan: "Enterprise", amount: "₹24,999", status: "Paid", date: "Yesterday" },
+            { org: "Cozy Homes", plan: "Starter", amount: "₹999", status: "Pending", date: "2 days ago" },
+            { org: "Prime PG", plan: "Growth", amount: "₹9,999", status: "Paid", date: "2 days ago" }
+          ]
+        },
+        progress: [
+          { label: "Growth Plan", value: "55%", color: "var(--blue-primary)" },
+          { label: "Starter Plan", value: "30%", color: "var(--chart-cyan)" },
+          { label: "Enterprise Plan", value: "15%", color: "var(--chart-indigo)" }
+        ]
+      }
+    },
+    tenant: {
+      name: "Tenant",
+      nav: [
+        { id: "dashboard", label: "Dashboard", icon: "🏠" },
+        { id: "room", label: "My Room", icon: "🛏️" },
+        { id: "payments", label: "Payments", icon: "💳" },
+        { id: "complaints", label: "Complaints", icon: "🎫" },
+        { id: "laundry", label: "Laundry", icon: "🧺" },
+        { id: "documents", label: "Documents", icon: "📄" }
+      ],
+      dashboard: {
+        kpis: [
+          { label: "Next Rent Due", value: "₹8,500", trend: "In 12 days", trendType: "neutral" },
+          { label: "Room", value: "204-B", trend: "Lotus Residency", trendType: "neutral" },
+          { label: "Active Tickets", value: "1", trend: "Maintenance", trendType: "warning" }
+        ]
+      }
+    },
+    staff: {
+      name: "Staff",
+      nav: [
+        { id: "dashboard", label: "Dashboard", icon: "📱" },
+        { id: "attendance", label: "Attendance", icon: "📅" },
+        { id: "tasks", label: "Assigned Tasks", icon: "📋" },
+        { id: "complaints", label: "Complaints", icon: "🎫" }
+      ],
+      dashboard: {
+        kpis: [
+          { label: "Pending Tasks", value: "4", trend: "2 Urgent", trendType: "down" },
+          { label: "Shift", value: "Morning", trend: "08:00 - 16:00", trendType: "neutral" }
+        ]
+      }
+    }
+  }
+};
+
+let currentRole = 'owner';
+let currentNav = 'dashboard';
+
+function getStatusClass(status) {
+  const s = status.toLowerCase();
+  if(['paid', 'active', 'completed', 'success'].includes(s)) return 'success';
+  if(['pending', 'due', 'warning'].includes(s)) return 'warning';
+  if(['overdue', 'failed', 'danger'].includes(s)) return 'danger';
+  return 'info';
+}
+
+function renderSidebar() {
+  const navContainer = document.getElementById('nav-container');
+  const roleConfig = data.roles[currentRole];
+  
+  let html = '';
+  roleConfig.nav.forEach(item => {
+    html += \`<div class="nav-item \${item.id === currentNav ? 'active' : ''}" onclick="switchNav('\${item.id}')">
+      <span style="margin-right: 12px; font-size: 1.1rem;">\${item.icon}</span>
+      \${item.label}
+    </div>\`;
+  });
+  navContainer.innerHTML = html;
+}
+
+function switchNav(navId) {
+  currentNav = navId;
+  renderSidebar();
+  renderContent();
+}
+
+function changeRole(role) {
+  currentRole = role;
+  currentNav = 'dashboard'; // Reset to dashboard on role change
+  document.getElementById('role-title').textContent = data.roles[role].name;
+  renderSidebar();
+  renderContent();
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+function renderContent() {
+  const container = document.getElementById('app-content');
+  document.getElementById('top-title').textContent = data.roles[currentRole].nav.find(n => n.id === currentNav)?.label || 'Dashboard';
+  
+  if (currentNav === 'dashboard') {
+    const dash = data.roles[currentRole].dashboard;
+    let html = '<div class="kpi-grid">';
+    
+    // KPIs
+    if (dash.kpis) {
+      dash.kpis.forEach(kpi => {
+        let trendIcon = kpi.trendType === 'up' ? '↑' : kpi.trendType === 'down' ? '↓' : '';
+        html += \`
+          <div class="kpi-card">
+            <div class="kpi-title">\${kpi.label}</div>
+            <div class="kpi-value">\${kpi.value}</div>
+            <div class="kpi-trend \${kpi.trendType}">\${trendIcon} \${kpi.trend}</div>
+          </div>
+        \`;
+      });
+    }
+    html += '</div>';
+
+    // Panels
+    if (dash.tables || dash.progress) {
+      html += '<div class="section-grid">';
+      
+      // Table Panel
+      if (dash.tables && dash.tables.recentPayments) {
+        html += \`
+          <div class="panel">
+            <div class="panel-header">
+              <div class="panel-title">\${currentRole === 'super_admin' ? 'Recent Subscriptions' : 'Recent Payments'}</div>
+            </div>
+            <div style="overflow-x: auto;">
+              <table>
+                <thead>
+                  <tr>
+                    <th>\${currentRole === 'super_admin' ? 'Organization' : 'Tenant'}</th>
+                    <th>\${currentRole === 'super_admin' ? 'Plan' : 'Room'}</th>
+                    <th>Amount</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+        \`;
+        dash.tables.recentPayments.forEach(row => {
+          html += \`
+            <tr>
+              <td><div class="font-medium">\${row.org || row.tenant}</div><div class="text-muted">\${row.date}</div></td>
+              <td>\${row.plan || row.room}</td>
+              <td>\${row.amount}</td>
+              <td><span class="status \${getStatusClass(row.status)}">\${row.status}</span></td>
+            </tr>
+          \`;
+        });
+        html += '</tbody></table></div></div>';
+      }
+
+      // Progress Panel
+      if (dash.progress) {
+        html += \`
+          <div class="panel">
+            <div class="panel-header">
+              <div class="panel-title">\${currentRole === 'super_admin' ? 'Plan Distribution' : 'Property Occupancy'}</div>
+            </div>
+            <div class="panel-body">
+        \`;
+        dash.progress.forEach(p => {
+          html += \`
+            <div class="progress-group">
+              <div class="progress-header">
+                <span>\${p.label}</span>
+                <span class="font-medium">\${p.value}</span>
+              </div>
+              <div class="progress-track">
+                <div class="progress-fill" style="width: \${p.value}; background-color: \${p.color}"></div>
+              </div>
+            </div>
+          \`;
+        });
+        html += '</div></div>';
+      }
+      
+      html += '</div>';
+    }
+    container.innerHTML = html;
+  } else if (currentNav === 'pricing') {
+    container.innerHTML = \`
+      <div class="pricing-grid">
+        <div class="pricing-card">
+          <div class="kpi-title">STARTER</div>
+          <div class="price">₹999<span>/mo</span></div>
+          <p class="text-muted">Perfect for single PG owners starting out.</p>
+          <ul class="features">
+            <li><svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg> Up to 50 beds</li>
+            <li><svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg> Basic Tenant Management</li>
+            <li><svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg> Payment Tracking</li>
+          </ul>
+          <button class="btn btn-outline" onclick="showToast('Preview only — no payment processed')">Subscribe</button>
+        </div>
+        <div class="pricing-card popular">
+          <div class="kpi-title" style="color: var(--blue-bright)">GROWTH</div>
+          <div class="price">₹9,999<span>/yr</span></div>
+          <p class="text-muted">For growing property management businesses.</p>
+          <ul class="features">
+            <li><svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg> Up to 500 beds</li>
+            <li><svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg> Advanced Analytics</li>
+            <li><svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg> Staff Management Module</li>
+            <li><svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg> WhatsApp Integration</li>
+          </ul>
+          <button class="btn btn-primary" onclick="showToast('Preview only — no payment processed')">Subscribe Yearly</button>
+        </div>
+      </div>
+    \`;
+  } else {
+    // Empty state for other modules
+    const moduleName = data.roles[currentRole].nav.find(n => n.id === currentNav)?.label || 'Module';
+    container.innerHTML = \`
+      <div class="empty-state">
+        <h2 style="color: var(--text-primary); margin-bottom: 1rem;">\${moduleName}</h2>
+        <p>This module is part of the full Hostly application.</p>
+        <p style="margin-top: 1rem; font-size: 0.85rem; color: var(--text-very-muted);">Interactive Preview Mode</p>
+      </div>
+    \`;
+  }
+}
+
+// Init
+renderSidebar();
+renderContent();
+`;
+
+const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Hostly - Interactive Preview</title>
+  <style>${css}</style>
+</head>
+<body>
+  <div class="shell">
+    <aside class="side" id="sidebar">
+      <div class="side-header">
+        Hostly <span class="badge">Preview</span>
+      </div>
+      <nav class="nav" id="nav-container"></nav>
+    </aside>
+    
+    <main class="main">
+      <header class="top">
+        <div class="top-title" id="top-title">Dashboard</div>
+        <div class="top-controls">
+          <div class="role-switch">
+            <label for="role-select">Role:</label>
+            <select id="role-select" onchange="changeRole(this.value)">
+              <option value="owner">Owner</option>
+              <option value="super_admin">Super Admin</option>
+              <option value="tenant">Tenant</option>
+              <option value="staff">Staff</option>
+            </select>
+          </div>
+          <div class="user-profile" style="width: 32px; height: 32px; border-radius: 50%; background: var(--blue-primary); display: flex; align-items: center; justify-content: center; color: white; font-weight: 600; font-size: 0.8rem;">
+            Me
+          </div>
+        </div>
+      </header>
+      
+      <div class="content" id="app-content"></div>
+    </main>
+  </div>
+  
+  <div id="toast">Preview only — no payment processed</div>
+
+  <script>${js}</script>
+</body>
+</html>`;
+
+const outputFilename = path.join(__dirname, 'Hostly-Interactive-Preview.html');
+fs.writeFileSync(outputFilename, html, 'utf8');
+console.log('Successfully generated interactive HTML preview at:', outputFilename);

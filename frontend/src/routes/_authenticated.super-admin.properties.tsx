@@ -114,18 +114,18 @@ function PropertiesPage() {
         <KpiCard label="Cities live" value="14" icon={Building2} />
       </div>
 
-      <Card className="mt-6 border-border/70">
-        <CardContent className="p-0">
-          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border/70 p-4">
+      <section className="w-full mt-6">
+        <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
             <div className="relative w-full max-w-xs">
               <Search className="pointer-events-none absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input placeholder="Search property or owner…" className="pl-8" />
+              <Input placeholder="Search property or owner…" className="pl-8 bg-input/20 border-border text-foreground placeholder:text-muted-foreground focus-visible:ring-1 focus-visible:ring-ring" />
             </div>
             <Button variant="outline" size="sm">
               <Filter className="mr-1 h-3.5 w-3.5" /> Filter
             </Button>
           </div>
-          <Table>
+          <div className="w-full overflow-x-auto">
+            <Table>
             <TableHeader>
               <TableRow>
                 <TableHead>Property</TableHead>
@@ -139,25 +139,25 @@ function PropertiesPage() {
             <TableBody>
               {PROPS.map((p) => (
                 <TableRow key={p.name}>
-                  <TableCell className="font-medium">{p.name}</TableCell>
-                  <TableCell className="text-muted-foreground">{p.owner}</TableCell>
-                  <TableCell>{p.city}</TableCell>
-                  <TableCell>{p.beds}</TableCell>
+                  <TableCell className="font-semibold text-foreground dark:text-[#F8FAFC]">{p.name}</TableCell>
+                  <TableCell className="text-muted-foreground dark:text-[#A8B4C5] font-medium">{p.owner}</TableCell>
+                  <TableCell className="text-muted-foreground dark:text-[#A8B4C5] font-medium">{p.city}</TableCell>
+                  <TableCell className="text-foreground dark:text-[#F8FAFC] font-semibold tabular-nums">{p.beds}</TableCell>
                   <TableCell>
                     <div className="flex items-center gap-2">
                       <Progress value={p.occ} className="h-1.5 w-24" />
-                      <span className="text-xs tabular-nums text-muted-foreground">{p.occ}%</span>
+                      <span className="text-xs tabular-nums text-muted-foreground dark:text-[#94A3B8] font-medium">{p.occ}%</span>
                     </div>
                   </TableCell>
                   <TableCell>
-                    <Badge variant="secondary">{p.tier}</Badge>
+                    <Badge variant="category">{p.tier}</Badge>
                   </TableCell>
                 </TableRow>
               ))}
             </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+            </Table>
+          </div>
+      </section>
     </DashboardShell>
   );
 }

@@ -83,10 +83,10 @@ const INVOICES = [
   },
 ];
 
-const STATUS: Record<string, { label: string; className: string }> = {
-  paid: { label: "Paid", className: "bg-success/10 text-success" },
-  past_due: { label: "Past due", className: "bg-destructive/10 text-destructive" },
-  trial: { label: "Trial", className: "bg-info/10 text-info" },
+const STATUS: Record<string, { label: string; variant: "success" | "danger" | "info" }> = {
+  paid: { label: "Paid", variant: "success" },
+  past_due: { label: "Past due", variant: "danger" },
+  trial: { label: "Trial", variant: "info" },
 };
 
 function RevenuePage() {
@@ -113,7 +113,7 @@ function RevenuePage() {
         <KpiCard label="Churn (30d)" value="1.8%" delta="−0.4%" tone="up" icon={CreditCard} />
       </div>
 
-      <Card className="mt-6 border-border/70">
+      <Card className="mt-6 border-border-default">
         <CardHeader>
           <CardTitle className="text-base">MRR trend · last 6 months</CardTitle>
         </CardHeader>
@@ -135,15 +135,15 @@ function RevenuePage() {
         </CardContent>
       </Card>
 
-      <Card className="mt-4 border-border/70">
-        <CardContent className="p-0">
-          <div className="flex items-center justify-between border-b border-border/70 p-4">
-            <p className="text-sm font-medium">Recent invoices</p>
+      <section className="w-full mt-6">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-base font-semibold text-foreground dark:text-[#F8FAFC]">Recent invoices</h2>
             <Button variant="outline" size="sm" onClick={exportCsv}>
               <Download className="mr-1 h-3.5 w-3.5" /> Export
             </Button>
           </div>
-          <Table>
+          <div className="w-full overflow-x-auto">
+            <Table>
             <TableHeader>
               <TableRow>
                 <TableHead>Invoice</TableHead>
@@ -157,24 +157,24 @@ function RevenuePage() {
             <TableBody>
               {INVOICES.map((i) => (
                 <TableRow key={i.id}>
-                  <TableCell className="font-mono text-xs">{i.id}</TableCell>
-                  <TableCell>{i.owner}</TableCell>
+                  <TableCell className="font-mono text-xs text-muted-foreground dark:text-[#CBD5E1] font-medium">{i.id}</TableCell>
+                  <TableCell className="font-semibold text-foreground dark:text-[#F8FAFC]">{i.owner}</TableCell>
                   <TableCell>
-                    <Badge variant="secondary">{i.plan}</Badge>
+                    <Badge variant="category">{i.plan}</Badge>
                   </TableCell>
-                  <TableCell className="font-medium">{i.amount}</TableCell>
-                  <TableCell className="text-muted-foreground">{i.date}</TableCell>
+                  <TableCell className="font-semibold text-foreground dark:text-[#F8FAFC] tabular-nums">{i.amount}</TableCell>
+                  <TableCell className="text-muted-foreground dark:text-[#94A3B8] font-medium">{i.date}</TableCell>
                   <TableCell>
-                    <Badge variant="secondary" className={STATUS[i.status].className}>
+                    <Badge variant={STATUS[i.status].variant}>
                       {STATUS[i.status].label}
                     </Badge>
                   </TableCell>
                 </TableRow>
               ))}
             </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+            </Table>
+          </div>
+      </section>
     </DashboardShell>
   );
 }

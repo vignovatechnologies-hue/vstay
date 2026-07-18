@@ -8,8 +8,8 @@ import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/providers/auth-provider";
 import { TENANT_NAV } from "@/config/navigation";
 import { cn } from "@/lib/utils";
-import { useLocalCollection } from "@/lib/local-store";
-import { pickFile, downloadText, shortId } from "@/lib/actions";
+import { useApiCollection } from "@/hooks/use-api-collection";
+import { pickFile, downloadText } from "@/lib/actions";
 
 export const Route = createFileRoute("/_authenticated/tenant/documents")({
   head: () => ({ meta: [{ title: "Documents · Hostly" }] }),
@@ -53,19 +53,22 @@ const SEED: Doc[] = [
   },
   { id: "d4", name: "Police Verification", type: "Verification", status: "missing" },
 ];
-const STATUS: Record<DocStatus, { label: string; className: string; Icon: typeof CheckCircle2 }> = {
-  verified: { label: "Verified", className: "bg-success/10 text-success", Icon: CheckCircle2 },
-  pending: { label: "Pending review", className: "bg-warning/10 text-warning", Icon: AlertCircle },
+const STATUS: Record<DocStatus, { label: string; variant: "success" | "warning" | "secondary"; Icon: typeof CheckCircle2 }> = {
+  verified: { label: "Verified", variant: "success", Icon: CheckCircle2 },
+  pending: { label: "Pending review", variant: "warning", Icon: AlertCircle },
   missing: {
     label: "Not uploaded",
-    className: "bg-muted text-muted-foreground",
+    variant: "secondary",
     Icon: AlertCircle,
   },
 };
 
 function DocumentsPage() {
   const { user } = useAuth();
-  const { items, add, update, remove } = useLocalCollection<Doc>("hostly.tenant.docs", SEED);
+  const { items, add, update, remove } = useApiCollection<Doc>("/api/documents", {
+    params: { userId: user?.id },
+    enabled: !!user?.id,
+  });
 
   if (!user) return null;
   if (user.role !== "tenant") return <Navigate to="/unauthorized" />;
@@ -79,12 +82,24 @@ function DocumentsPage() {
       day: "2-digit",
       year: "numeric",
     });
-    if (existing) {
-      update(existing.id, { name: file.name, size, uploaded, status: "pending" });
-      toast.success(`${file.name} uploaded — pending review`);
-    } else {
-      add({ id: shortId("d"), name: file.name, type: "Other", size, uploaded, status: "pending" });
-      toast.success(`${file.name} uploaded`);
+    try {
+      if (existing) {
+        await update(existing.id, { name: file.name, size, uploaded, status: "pending" });
+        toast.success(`${file.name} uploaded — pending review`);
+      } else {
+        await add({
+          userId: user?.id || "",
+          workspaceId: user?.workspaceIds?.[0] || "",
+          name: file.name,
+          type: "Other",
+          size,
+          uploaded,
+          status: "pending",
+        } as Omit<Doc, "id">);
+        toast.success(`${file.name} uploaded`);
+      }
+    } catch {
+      toast.error("Failed to upload document");
     }
   }
   function download(d: Doc) {
@@ -115,7 +130,7 @@ function DocumentsPage() {
           const s = STATUS[d.status];
           const Icon = s.Icon;
           return (
-            <Card key={d.id} className="border-border/70">
+            <Card key={d.id} className="border-border-default">
               <CardContent className="flex items-start gap-3 p-4">
                 <span className="grid h-10 w-10 place-items-center rounded-md bg-primary/10 text-primary">
                   <FileText className="h-5 w-5" />
@@ -130,8 +145,8 @@ function DocumentsPage() {
                         {d.size ? ` · ${d.size}` : ""}
                       </p>
                     </div>
-                    <Badge variant="secondary" className={cn("shrink-0", s.className)}>
-                      <Icon className="mr-1 h-3 w-3" /> {s.label}
+                    <Badge variant={s.variant} className="shrink-0 font-bold border-2 shadow-sm">
+                      <Icon className="mr-1 h-3.5 w-3.5" strokeWidth={3} /> {s.label}
                     </Badge>
                   </div>
                   <div className="mt-3 flex gap-2">
@@ -150,12 +165,16 @@ function DocumentsPage() {
                         <Button
                           size="sm"
                           variant="ghost"
-                          onClick={() => {
-                            remove(d.id);
-                            toast.success(`${d.name} removed`);
+                          onClick={async () => {
+                            try {
+                              await remove(d.id);
+                              toast.success(`${d.name} removed`);
+                            } catch {
+                              toast.error("Failed to remove document");
+                            }
                           }}
                         >
-                          <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                          <Trash2 className="h-3.5 w-3.5 text-destructive dark:text-destructive-foreground" strokeWidth={2.5} />
                         </Button>
                       </>
                     )}

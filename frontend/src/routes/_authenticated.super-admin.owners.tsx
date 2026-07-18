@@ -104,10 +104,10 @@ const OWNERS = [
   },
 ];
 
-const STATUS: Record<string, { label: string; className: string }> = {
-  active: { label: "Active", className: "bg-success/10 text-success" },
-  trial: { label: "Trial", className: "bg-info/10 text-info" },
-  past_due: { label: "Past due", className: "bg-destructive/10 text-destructive" },
+const STATUS: Record<string, { label: string; variant: "success" | "info" | "danger" }> = {
+  active: { label: "Active", variant: "success" },
+  trial: { label: "Trial", variant: "info" },
+  past_due: { label: "Past due", variant: "danger" },
 };
 
 function OwnersPage() {
@@ -134,7 +134,7 @@ function OwnersPage() {
     const emailLower = form.email.toLowerCase().trim();
     const cleanName = form.name.replace(/\s+/g, "").slice(0, 4).toLowerCase();
     const cleanPhone = form.phone.replace(/\D/g, "");
-    const lastFourPhone = cleanPhone.length >= 4 ? cleanPhone.slice(-4) : (cleanPhone || "0000");
+    const lastFourPhone = cleanPhone.length >= 4 ? cleanPhone.slice(-4) : cleanPhone || "0000";
     const generatedPassword = `${cleanName}${lastFourPhone}`;
 
     const workspaceId = `pg_${form.hostelName.toLowerCase().replace(/\s+/g, "_")}_${Date.now().toString().slice(-4)}`;
@@ -214,7 +214,8 @@ Note: The default password consists of the first 4 letters of your name and the 
         properties: 1,
         tenants: 0,
         plan: form.planId,
-        mrr: form.planId === "Starter" ? "₹ 999" : form.planId === "Growth" ? "₹ 2,499" : "₹ 12,996",
+        mrr:
+          form.planId === "Starter" ? "₹ 999" : form.planId === "Growth" ? "₹ 2,499" : "₹ 12,996",
         status: "active" as const,
         joined: "Just now",
       },
@@ -233,24 +234,45 @@ Note: The default password consists of the first 4 letters of your name and the 
       navGroups={SUPER_ADMIN_NAV}
     >
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <KpiCard label="Total owners" value={String(items.length)} delta="+3 this week" tone="up" icon={Users} />
-        <KpiCard label="Active" value={String(items.filter((i) => i.status === "active").length)} tone="up" icon={Users} />
-        <KpiCard label="On trial" value={String(items.filter((i) => i.status === "trial").length)} tone="neutral" icon={Users} />
-        <KpiCard label="Past due" value={String(items.filter((i) => i.status === "past_due").length)} tone="down" icon={Users} />
+        <KpiCard
+          label="Total owners"
+          value={String(items.length)}
+          delta="+3 this week"
+          tone="up"
+          icon={Users}
+        />
+        <KpiCard
+          label="Active"
+          value={String(items.filter((i) => i.status === "active").length)}
+          tone="up"
+          icon={Users}
+        />
+        <KpiCard
+          label="On trial"
+          value={String(items.filter((i) => i.status === "trial").length)}
+          tone="neutral"
+          icon={Users}
+        />
+        <KpiCard
+          label="Past due"
+          value={String(items.filter((i) => i.status === "past_due").length)}
+          tone="down"
+          icon={Users}
+        />
       </div>
 
-      <Card className="mt-6 border-border/70">
-        <CardContent className="p-0">
-          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border/70 p-4">
+      <section className="w-full mt-6">
+        <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
             <div className="relative w-full max-w-xs">
               <Search className="pointer-events-none absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input placeholder="Search owners…" className="pl-8" />
+              <Input placeholder="Search owners…" className="pl-8 bg-input/20 border-border text-foreground placeholder:text-muted-foreground focus-visible:ring-1 focus-visible:ring-ring" />
             </div>
             <Button size="sm" onClick={() => setOpen(true)}>
               <Plus className="mr-1 h-4 w-4" /> Invite owner
             </Button>
           </div>
-          <Table>
+          <div className="w-full overflow-x-auto">
+            <Table>
             <TableHeader>
               <TableRow>
                 <TableHead>Owner</TableHead>
@@ -272,34 +294,34 @@ Note: The default password consists of the first 4 letters of your name and the 
                         <AvatarFallback>{o.initials}</AvatarFallback>
                       </Avatar>
                       <div>
-                        <p className="text-sm font-medium">{o.name}</p>
-                        <p className="text-xs text-muted-foreground">{o.email}</p>
+                        <p className="text-sm font-semibold text-foreground dark:text-[#F8FAFC]">{o.name}</p>
+                        <p className="text-xs text-muted-foreground dark:text-[#718096]">{o.email}</p>
                       </div>
                     </div>
                   </TableCell>
-                  <TableCell>{o.properties}</TableCell>
-                  <TableCell>{o.tenants}</TableCell>
+                  <TableCell className="text-muted-foreground dark:text-[#A8B4C5] font-medium">{o.properties}</TableCell>
+                  <TableCell className="text-muted-foreground dark:text-[#A8B4C5] font-medium">{o.tenants}</TableCell>
                   <TableCell>
-                    <Badge variant="secondary">{o.plan}</Badge>
+                    <Badge variant="category">{o.plan}</Badge>
                   </TableCell>
-                  <TableCell className="font-medium">{o.mrr}</TableCell>
-                  <TableCell className="text-muted-foreground">{o.joined}</TableCell>
+                  <TableCell className="font-semibold text-foreground dark:text-[#F8FAFC] tabular-nums">{o.mrr}</TableCell>
+                  <TableCell className="text-muted-foreground dark:text-[#94A3B8] font-medium">{o.joined}</TableCell>
                   <TableCell>
-                    <Badge variant="secondary" className={STATUS[o.status].className}>
+                    <Badge variant={STATUS[o.status].variant}>
                       {STATUS[o.status].label}
                     </Badge>
                   </TableCell>
                   <TableCell className="text-right">
-                    <Button variant="ghost" size="icon">
+                    <Button variant="tableActionIcon" size="icon">
                       <MoreHorizontal className="h-4 w-4" />
                     </Button>
                   </TableCell>
                 </TableRow>
               ))}
             </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+            </Table>
+          </div>
+      </section>
 
       {/* Invite Owner Dialog */}
       <Dialog open={open} onOpenChange={setOpen}>
@@ -307,7 +329,8 @@ Note: The default password consists of the first 4 letters of your name and the 
           <DialogHeader>
             <DialogTitle>Invite New PG Owner</DialogTitle>
             <DialogDescription>
-              Create a PG Owner profile. An invitation email with credentials and access link will be sent.
+              Create a PG Owner profile. An invitation email with credentials and access link will
+              be sent.
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">

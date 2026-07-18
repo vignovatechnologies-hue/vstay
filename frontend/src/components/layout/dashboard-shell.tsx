@@ -18,11 +18,13 @@ export function DashboardShell({
   children,
 }: DashboardShellProps) {
   return (
-    <div className="flex min-h-dvh w-full bg-background">
+    <div className="flex h-dvh w-full overflow-hidden bg-background">
       <Sidebar groups={navGroups} />
-      <div className="flex min-w-0 flex-1 flex-col">
+      <div className="flex min-w-0 min-h-0 flex-1 flex-col">
         <Topbar title={title} subtitle={subtitle} showWorkspaceSwitcher={showWorkspaceSwitcher} />
-        <main className="flex-1 px-4 py-6 md:px-8">{children}</main>
+        <main className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden px-4 py-6 md:px-8">
+          {children}
+        </main>
       </div>
     </div>
   );

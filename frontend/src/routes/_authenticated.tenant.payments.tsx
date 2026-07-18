@@ -1,5 +1,5 @@
 import { createFileRoute, Navigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { CreditCard, Download, CheckCircle2, Clock } from "lucide-react";
 import { toast } from "sonner";
 import { DashboardShell } from "@/components/layout/dashboard-shell";
@@ -32,8 +32,9 @@ import {
 } from "@/components/ui/table";
 import { useAuth } from "@/providers/auth-provider";
 import { TENANT_NAV } from "@/config/navigation";
-import { useLocalCollection, useLocalState } from "@/lib/local-store";
-import { downloadText, shortId, formatShortDate } from "@/lib/actions";
+import { useLocalState } from "@/lib/local-store";
+import { useApiCollection } from "@/hooks/use-api-collection";
+import { downloadText, formatShortDate } from "@/lib/actions";
 
 export const Route = createFileRoute("/_authenticated/tenant/payments")({
   head: () => ({ meta: [{ title: "Rent & receipts · Hostly" }] }),
@@ -46,7 +47,7 @@ type Receipt = {
   amount: string;
   date: string;
   method: string;
-  status: "paid";
+  status: "paid" | "due";
 };
 
 const SEED: Receipt[] = [
@@ -94,16 +95,20 @@ const SEED: Receipt[] = [
 
 function PaymentsPage() {
   const { user } = useAuth();
-  const { items, add } = useLocalCollection<Receipt>("hostly.tenant.receipts", SEED);
+  const { items, update } = useApiCollection<Receipt>("/api/invoices", {
+    params: { tenantName: user?.fullName },
+    enabled: !!user?.fullName,
+  });
   const [autopay, setAutopay] = useLocalState("hostly.tenant.autopay", false);
   const [payOpen, setPayOpen] = useState(false);
-  const [nextDue, setNextDue] = useLocalState("hostly.tenant.nextDue", {
-    amount: 11500,
-    dueOn: "5 December 2026",
-    paid: false,
-  });
   const [method, setMethod] = useState("upi");
   const [processing, setProcessing] = useState(false);
+
+  const receipts = useMemo(() => items.filter((r) => r.status === "paid"), [items]);
+  const dueInvoice = useMemo(() => items.find((r) => r.status === "due"), [items]);
+
+  const dueAmount = dueInvoice ? parseInt(dueInvoice.amount.replace(/[^\d]/g, "")) || 11500 : 0;
+  const isPaid = !dueInvoice;
 
   if (!user) return null;
   if (user.role !== "tenant") return <Navigate to="/unauthorized" />;
@@ -127,23 +132,23 @@ Thank you for staying with Greenhaven Residency.`;
     toast.success(`Receipt ${r.id} downloaded`);
   }
 
-  function pay() {
+  async function pay() {
+    if (!dueInvoice) return;
     setProcessing(true);
-    setTimeout(() => {
-      const r: Receipt = {
-        id: shortId("RCP"),
-        month: nextDue.dueOn.split(" ").slice(1).join(" "),
-        amount: `₹ ${nextDue.amount.toLocaleString("en-IN")}`,
-        date: formatShortDate(),
-        method: method === "upi" ? "UPI · HDFC" : method === "card" ? "Card · Visa 4021" : "Bank",
+    const paidMethod = method === "upi" ? "UPI · HDFC" : method === "card" ? "Card · Visa 4021" : "Bank";
+    try {
+      await update(dueInvoice.id, {
         status: "paid",
-      };
-      add(r);
-      setNextDue({ ...nextDue, paid: true });
-      setProcessing(false);
+        date: formatShortDate(),
+        method: paidMethod,
+      });
       setPayOpen(false);
-      toast.success(`Paid ${r.amount} — receipt saved`);
-    }, 900);
+      toast.success(`Paid ${dueInvoice.amount} — receipt saved`);
+    } catch {
+      toast.error("Failed to make payment");
+    } finally {
+      setProcessing(false);
+    }
   }
 
   return (
@@ -153,23 +158,23 @@ Thank you for staying with Greenhaven Residency.`;
       navGroups={TENANT_NAV}
     >
       <div className="grid gap-4 lg:grid-cols-3">
-        <Card className="lg:col-span-2 border-border/70 bg-gradient-to-br from-primary/5 to-transparent">
+        <Card className="lg:col-span-2 border-border-default bg-gradient-to-br from-primary/5 to-transparent">
           <CardContent className="flex flex-col gap-4 p-6 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-                {nextDue.paid ? "Rent paid" : "Next payment due"}
+                {isPaid ? "Rent paid" : "Next payment due"}
               </p>
               <p className="mt-1 text-3xl font-semibold tracking-tight">
-                ₹ {nextDue.amount.toLocaleString("en-IN")}
+                ₹ {dueAmount.toLocaleString("en-IN")}
               </p>
               <p className="mt-1 flex items-center gap-1.5 text-sm text-muted-foreground">
                 <Clock className="h-3.5 w-3.5" />{" "}
-                {nextDue.paid ? "Next cycle starts 1 Jan 2027" : `Due on ${nextDue.dueOn}`}
+                {isPaid ? "Next cycle starts 1 Jan 2027" : `Due on 5 December 2026`}
               </p>
             </div>
             <div className="flex flex-col gap-2 sm:flex-row">
-              <Button disabled={nextDue.paid} onClick={() => setPayOpen(true)}>
-                <CreditCard className="mr-1 h-4 w-4" /> {nextDue.paid ? "Paid" : "Pay now"}
+              <Button disabled={isPaid} onClick={() => setPayOpen(true)}>
+                <CreditCard className="mr-1 h-4 w-4" /> {isPaid ? "Paid" : "Pay now"}
               </Button>
               <Button
                 variant="outline"
@@ -183,7 +188,7 @@ Thank you for staying with Greenhaven Residency.`;
             </div>
           </CardContent>
         </Card>
-        <Card className="border-border/70">
+        <Card className="border-border-default">
           <CardContent className="space-y-2 p-6">
             <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
               Deposit
@@ -196,52 +201,84 @@ Thank you for staying with Greenhaven Residency.`;
         </Card>
       </div>
 
-      <Card className="mt-6 border-border/70">
-        <CardHeader>
-          <CardTitle className="text-base">Payment history</CardTitle>
-        </CardHeader>
-        <CardContent className="p-0">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Receipt</TableHead>
-                <TableHead>Month</TableHead>
-                <TableHead>Paid on</TableHead>
-                <TableHead>Method</TableHead>
-                <TableHead>Amount</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="text-right">Receipt</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {items.map((r) => (
-                <TableRow key={r.id}>
-                  <TableCell className="font-mono text-xs">{r.id}</TableCell>
-                  <TableCell className="font-medium">{r.month}</TableCell>
-                  <TableCell className="text-muted-foreground">{r.date}</TableCell>
-                  <TableCell className="text-muted-foreground">{r.method}</TableCell>
-                  <TableCell className="font-semibold">{r.amount}</TableCell>
-                  <TableCell>
-                    <Badge variant="secondary" className="bg-success/10 text-success">
+      <section className="w-full mt-6">
+        <div className="mb-4">
+          <h2 className="text-base font-semibold text-foreground dark:text-[#F8FAFC]">Payment history</h2>
+        </div>
+        <div className="w-full">
+          {/* LIGHT MODE: Spreadsheet Table */}
+          <div className="block dark:hidden overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Receipt</TableHead>
+                  <TableHead>Month</TableHead>
+                  <TableHead>Paid on</TableHead>
+                  <TableHead>Method</TableHead>
+                  <TableHead>Amount</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead className="text-right">Receipt</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {receipts.map((r) => (
+                  <TableRow key={r.id}>
+                    <TableCell className="font-mono text-xs text-muted-foreground dark:text-[#CBD5E1] font-medium">{r.id}</TableCell>
+                    <TableCell className="font-semibold text-foreground dark:text-[#F8FAFC]">{r.month}</TableCell>
+                    <TableCell className="text-muted-foreground dark:text-[#94A3B8] font-medium">{r.date}</TableCell>
+                    <TableCell className="text-muted-foreground dark:text-[#94A3B8] font-medium">{r.method}</TableCell>
+                    <TableCell className="font-semibold text-foreground dark:text-[#F8FAFC] tabular-nums">{r.amount}</TableCell>
+                    <TableCell>
+                      <Badge variant="success">
+                        <CheckCircle2 className="mr-1 h-3 w-3" /> Paid
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <Button variant="tableActionIcon" size="tableIcon" onClick={() => download(r)}>
+                        <Download className="h-4 w-4" />
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+
+          {/* DARK MODE: Professional Transaction Records */}
+          <div className="hidden dark:flex flex-col gap-2 mt-2">
+            {receipts.map((r) => (
+              <div key={r.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-[14px_16px] rounded-[10px] bg-[rgba(17,30,49,0.68)] border border-[rgba(100,116,139,0.14)] hover:bg-[rgba(37,99,235,0.08)] transition-colors duration-150">
+                <div className="flex flex-col gap-1 w-full sm:w-auto">
+                  <span className="font-semibold text-[#F1F5F9]">{r.month}</span>
+                  <div className="flex items-center gap-2 text-[#8492A6] text-xs">
+                    <span>Paid on: {r.date}</span>
+                    <span>•</span>
+                    <span>{r.method}</span>
+                    <span className="hidden sm:inline">•</span>
+                    <span className="hidden sm:inline font-mono">{r.id}</span>
+                  </div>
+                </div>
+                <div className="flex items-center justify-between sm:justify-end gap-4 mt-4 sm:mt-0 w-full sm:w-auto">
+                  <span className="font-semibold text-[#F1F5F9] text-base tabular-nums">{r.amount}</span>
+                  <div className="flex items-center gap-3">
+                    <Badge variant="success">
                       <CheckCircle2 className="mr-1 h-3 w-3" /> Paid
                     </Badge>
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <Button variant="ghost" size="sm" onClick={() => download(r)}>
-                      <Download className="h-3.5 w-3.5" />
+                    <Button variant="outline" size="sm" className="h-8 border-[rgba(100,116,139,0.14)] text-[#B6C2D2] hover:text-[#F1F5F9] hover:bg-[#142238]" onClick={() => download(r)}>
+                      <Download className="mr-1.5 h-3.5 w-3.5" /> Receipt
                     </Button>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
 
       <Dialog open={payOpen} onOpenChange={setPayOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Pay rent — ₹ {nextDue.amount.toLocaleString("en-IN")}</DialogTitle>
+            <DialogTitle>Pay rent — ₹ {dueAmount.toLocaleString("en-IN")}</DialogTitle>
           </DialogHeader>
           <div className="grid gap-3">
             <div>
