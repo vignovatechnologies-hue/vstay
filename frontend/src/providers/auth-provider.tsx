@@ -16,7 +16,7 @@ interface AuthContextValue {
   user: User | null;
   session: Session | null;
   status: "loading" | "authenticated" | "unauthenticated";
-  login: (email: string, password: string) => Promise<LoginResult>;
+  login: (email: string, password: string, expectedRole?: "owner" | "super_admin") => Promise<LoginResult>;
   logout: () => Promise<void>;
   setActiveWorkspace: (workspaceId: string) => void;
   hasRole: (role: UserRole | UserRole[]) => boolean;
@@ -49,8 +49,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       });
   }, []);
 
-  const login = useCallback(async (email: string, password: string) => {
+  const login = useCallback(async (email: string, password: string, expectedRole?: "owner" | "super_admin") => {
     const result = await authService.login({ email, password });
+    if (expectedRole === "super_admin" && result.user.role !== "super_admin") {
+      throw new Error("Access denied: This account is not a Super Admin.");
+    }
+    if (expectedRole === "owner" && result.user.role === "super_admin") {
+      throw new Error("Access denied: Please use the Super Admin portal to log in.");
+    }
     sessionStorage.write(result.session);
     setSession(result.session);
     setUser(result.user);

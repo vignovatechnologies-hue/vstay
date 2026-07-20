@@ -208,7 +208,7 @@ function LoginPage() {
               {activeTab === "owner" && authMode === "signup" ? (
                 <SignupForm onSignupSuccess={() => setAuthMode("signin")} />
               ) : (
-                <LoginForm />
+                <LoginForm expectedRole={activeTab} />
               )}
 
               {/* Show toggle for Sign In / Sign Up only on Owner portal */}

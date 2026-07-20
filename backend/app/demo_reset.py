@@ -63,15 +63,45 @@ def reset_demo_data():
     log.info("═══ DEMO RESET STARTED ═══")
     started = datetime.now(timezone.utc)
 
+    import os
+    from app.database import DEMO_DB_FILE, init_sqlite_db
+    from app.database import (
+        _seed_users,
+        _seed_workspaces,
+        _seed_rooms,
+        _seed_tenants,
+        _seed_staff,
+        _seed_complaints,
+        _seed_invoices
+    )
+
     try:
-        _clear_demo_data()
-        _reseed_demo_data()
-        _reset_demo_workspaces()
-        _reset_demo_passwords()
+        # Delete the SQLite temporary database file to wipe all demo sessions
+        if os.path.exists(DEMO_DB_FILE):
+            try:
+                os.remove(DEMO_DB_FILE)
+                log.info("Temporary SQLite database file deleted successfully.")
+            except Exception as ex:
+                log.error(f"Failed to remove SQLite temporary file: {ex}")
+
+        # Re-initialize the tables
+        init_sqlite_db()
+        log.info("Temporary SQLite database tables re-initialized.")
+
+        # Seed the temporary database
+        _seed_users()
+        _seed_workspaces()
+        _seed_rooms()
+        _seed_tenants()
+        _seed_staff()
+        _seed_complaints()
+        _seed_invoices()
+        
         _log_reset(started)
         log.info("═══ DEMO RESET COMPLETE ═══")
     except Exception as e:
         log.error(f"DEMO RESET FAILED: {e}", exc_info=True)
+
 
 
 # ── Step 1 · Clear ────────────────────────────────────────────────────────────
@@ -222,7 +252,7 @@ def _reset_demo_workspaces():
     ]
     for wid, tot, occ, acc in rows:
         query(
-            "UPDATE workspaces SET total_beds = %s, occupied_beds = %s, accent = %s, plan_id = 'yearly', subscription_status = 'active', stripe_subscription_id = NULL, stripe_customer_id = NULL WHERE id = %s",
+            "UPDATE workspaces SET total_beds = %s, occupied_beds = %s, accent = %s, plan_id = 'yearly', subscription_status = 'active', stripe_subscription_id = NULL, stripe_customer_id = NULL, amount_paid = 9999 WHERE id = %s",
             (tot, occ, acc, wid), commit=True,
         )
     log.info("Demo workspaces reset.")

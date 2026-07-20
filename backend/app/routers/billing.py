@@ -1,11 +1,14 @@
-"""Billing router – Stripe subscription integrations."""
+"""Billing router – Razorpay payment gateway integration."""
 import os
 import time
 import logging
-from typing import Optional
+import hmac
+import hashlib
+import json
+import requests as http_requests
 from fastapi import APIRouter, HTTPException, Request, status
 from pydantic import BaseModel
-import stripe
+from typing import Optional
 from dotenv import load_dotenv
 from app.database import query, query_one
 
@@ -15,173 +18,134 @@ log = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/billing", tags=["billing"])
 
-# Initialize Stripe API Key dynamically
-def get_stripe_key() -> str:
+
+def get_razorpay_keys() -> tuple[str, str]:
+    """Load Razorpay credentials dynamically from environment each time."""
     load_dotenv(override=True)
-    key = os.getenv("STRIPE_SECRET_KEY")
-    if not key:
+    key_id = os.getenv("RAZORPAY_KEY_ID")
+    key_secret = os.getenv("RAZORPAY_KEY_SECRET")
+    if not key_id or not key_secret:
         raise HTTPException(
             status_code=500,
-            detail="STRIPE_SECRET_KEY is not configured in the backend environment (.env file)."
+            detail="RAZORPAY_KEY_ID or RAZORPAY_KEY_SECRET is not configured in the backend .env file."
         )
-    return key
-
-# Frontend redirection base url
-FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:5173")
+    return key_id, key_secret
 
 
-class CreateCheckoutSessionIn(BaseModel):
-    planId: str  # "monthly" | "yearly"
+# ── Razorpay Order Creation ────────────────────────────────────────────────────
+
+class CreateRazorpayOrderIn(BaseModel):
+    planId: str       # e.g. "monthly" or "yearly" — label only, no amounts derived from it
+    planName: str     # human-readable plan name from super admin config
     workspaceId: str
+    amountPaise: int  # Exact amount in paise as set by super admin in Plans & Pricing
 
 
-@router.post("/create-checkout-session")
-def create_checkout_session(body: CreateCheckoutSessionIn):
-    """Create a Stripe checkout session for a monthly/yearly subscription."""
-    stripe.api_key = get_stripe_key()
-    try:
-        # Determine the price details in INR in paise (₹999.00 = 99900 paise)
-        if body.planId == "monthly":
-            amount = 99900  # ₹999.00 (in paise)
-            name = "Hostly Monthly Plan"
-        elif body.planId == "yearly":
-            amount = 999900  # ₹9,999.00 (in paise)
-            name = "Hostly Yearly Plan"
-        else:
-            raise HTTPException(status.HTTP_400_BAD_REQUEST, detail="Invalid plan ID.")
+@router.post("/create-razorpay-order")
+def create_razorpay_order(body: CreateRazorpayOrderIn):
+    """Create a Razorpay order using the amount set by the super admin."""
+    key_id, key_secret = get_razorpay_keys()
 
-        # Check if workspace exists
-        ws = query_one("SELECT * FROM workspaces WHERE id = %s", (body.workspaceId,))
-        if not ws:
-            raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Workspace not found.")
-
-        # Create checkout session with both Card and UPI enabled (inr one-time payment)
-        session = stripe.checkout.Session.create(
-            payment_method_types=["card", "upi"],
-            line_items=[
-                {
-                    "price_data": {
-                        "currency": "inr",
-                        "product_data": {
-                            "name": name,
-                            "description": f"Access for Hostly PG workspace: {ws['name']}",
-                        },
-                        "unit_amount": amount,
-                    },
-                    "quantity": 1,
-                }
-            ],
-            mode="payment",
-            success_url=f"{FRONTEND_URL}/pricing?session_id={{CHECKOUT_SESSION_ID}}&success=true&workspace_id={body.workspaceId}",
-            cancel_url=f"{FRONTEND_URL}/pricing?success=false",
-            client_reference_id=body.workspaceId,
-            metadata={
-                "workspace_id": body.workspaceId,
-                "plan_id": body.planId,
-            },
-        )
-
-        return {"url": session.url}
-
-    except Exception as e:
-        log.error(f"Error creating checkout session: {e}", exc_info=True)
+    if body.amountPaise <= 0:
         raise HTTPException(
-            status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Stripe initialization error: {str(e)}",
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Plan amount must be greater than zero. Configure it in Super Admin → Plans & Pricing."
         )
 
+    ws = query_one("SELECT * FROM workspaces WHERE id = %s", (body.workspaceId,))
+    if not ws:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Workspace not found.")
 
-@router.get("/verify-session")
-def verify_session(session_id: str):
-    """Verify Stripe checkout session and update workspace plan/subscription status."""
-    stripe.api_key = get_stripe_key()
+    receipt_id = f"rcpt_{body.workspaceId}_{int(time.time())}"
+
     try:
-        session = stripe.checkout.Session.retrieve(session_id)
-        if session.payment_status in ("paid", "no_payment_required") or session.status == "complete":
-            workspace_id = session.metadata.get("workspace_id") or session.client_reference_id
-            plan_id = session.metadata.get("plan_id", "monthly")
-
-            stripe_sub_id = session.subscription or session.payment_intent or session.id
-            stripe_cust_id = session.customer
-
-            if not workspace_id:
-                raise HTTPException(status.HTTP_400_BAD_REQUEST, detail="Missing workspace in session metadata.")
-
-            # Update the workspace status
-            query(
-                "UPDATE workspaces SET subscription_status = 'active', plan_id = %s, stripe_subscription_id = %s, stripe_customer_id = %s WHERE id = %s",
-                (plan_id, stripe_sub_id, stripe_cust_id, workspace_id),
-                commit=True,
-            )
-
-            # Retrieve updated workspace
-            ws = query_one("SELECT * FROM workspaces WHERE id = %s", (workspace_id,))
-            return {"status": "success", "workspace": ws}
-
-        raise HTTPException(status.HTTP_400_BAD_REQUEST, detail="Session payment is incomplete.")
-
+        response = http_requests.post(
+            "https://api.razorpay.com/v1/orders",
+            json={
+                "amount": body.amountPaise,
+                "currency": "INR",
+                "receipt": receipt_id,
+                "notes": {
+                    "workspace_id": body.workspaceId,
+                    "plan_id": body.planId,
+                    "plan_name": body.planName,
+                }
+            },
+            auth=(key_id, key_secret),
+            timeout=15
+        )
+        response.raise_for_status()
+        order_data = response.json()
+    except http_requests.HTTPError as e:
+        log.error(f"Razorpay order creation failed: {e} — {e.response.text if e.response else ''}")
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail=f"Razorpay API error: {e.response.json().get('error', {}).get('description', str(e)) if e.response else str(e)}"
+        )
     except Exception as e:
-        log.error(f"Error verifying session: {e}", exc_info=True)
-        raise HTTPException(status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+        log.error(f"Razorpay order creation error: {e}", exc_info=True)
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+
+    return {
+        "keyId": key_id,
+        "orderId": order_data["id"],
+        "amount": body.amountPaise,
+        "currency": "INR",
+        "planId": body.planId,
+        "planName": body.planName,
+        "workspaceId": body.workspaceId,
+    }
 
 
-@router.post("/webhook")
-async def stripe_webhook(request: Request):
-    """Webhook to receive subscription status updates asynchronously from Stripe."""
-    stripe.api_key = get_stripe_key()
-    payload = await request.body()
-    sig_header = request.headers.get("stripe-signature")
-    endpoint_secret = os.getenv("STRIPE_WEBHOOK_SECRET")
+# ── Razorpay Payment Verification ─────────────────────────────────────────────
 
-    event = None
+class VerifyRazorpayPaymentIn(BaseModel):
+    razorpay_order_id: str
+    razorpay_payment_id: str
+    razorpay_signature: str
+    workspaceId: str
+    planId: str
+    amountPaid: Optional[int] = None
+
+
+@router.post("/verify-razorpay-payment")
+def verify_razorpay_payment(body: VerifyRazorpayPaymentIn):
+    """Verify Razorpay HMAC signature and activate workspace subscription."""
+    _, key_secret = get_razorpay_keys()
+
+    # HMAC-SHA256 signature check — prevents tampered payment callbacks
+    msg = f"{body.razorpay_order_id}|{body.razorpay_payment_id}"
+    expected = hmac.new(
+        key_secret.encode("utf-8"),
+        msg.encode("utf-8"),
+        hashlib.sha256
+    ).hexdigest()
+
+    if expected != body.razorpay_signature:
+        log.warning("Razorpay signature mismatch — possible tampered callback.")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Payment signature verification failed."
+        )
+
     try:
-        if endpoint_secret and sig_header:
-            event = stripe.Webhook.construct_event(payload, sig_header, endpoint_secret)
-        else:
-            # Fallback to direct event parse (useful for local testing without signature configured)
-            import json
-            data = json.loads(payload.decode("utf-8"))
-            event = stripe.Event.construct_from(data, stripe.api_key)
+        amount_paid = body.amountPaid if body.amountPaid is not None else 0
+        query(
+            """UPDATE workspaces
+               SET subscription_status = 'active',
+                   plan_id             = %s,
+                   stripe_subscription_id = %s,
+                   stripe_customer_id     = %s,
+                   amount_paid            = %s
+               WHERE id = %s""",
+            (body.planId, body.razorpay_payment_id, body.razorpay_order_id, amount_paid, body.workspaceId),
+            commit=True,
+        )
+        ws = query_one("SELECT * FROM workspaces WHERE id = %s", (body.workspaceId,))
+        return {"status": "success", "workspace": ws}
     except Exception as e:
-        log.error(f"Webhook signature verification failed: {e}")
-        raise HTTPException(status.HTTP_400_BAD_REQUEST, detail="Invalid payload signature.")
-
-    event_type = event.get("type")
-    data_object = event.get("data", {}).get("object", {})
-
-    log.info(f"Received stripe webhook: {event_type}")
-
-    if event_type == "checkout.session.completed":
-        # Handled both synchronously and here
-        workspace_id = data_object.get("metadata", {}).get("workspace_id") or data_object.get("client_reference_id")
-        plan_id = data_object.get("metadata", {}).get("plan_id", "monthly")
-        stripe_sub_id = data_object.get("subscription") or data_object.get("payment_intent") or data_object.get("id")
-        stripe_cust_id = data_object.get("customer")
-
-        if workspace_id:
-            query(
-                "UPDATE workspaces SET subscription_status = 'active', plan_id = %s, stripe_subscription_id = %s, stripe_customer_id = %s WHERE id = %s",
-                (plan_id, stripe_sub_id, stripe_cust_id, workspace_id),
-                commit=True,
-            )
-
-    elif event_type in ("invoice.payment_succeeded", "invoice.payment_failed"):
-        stripe_sub_id = data_object.get("subscription")
-        if stripe_sub_id:
-            status_val = "active" if event_type == "invoice.payment_succeeded" else "unpaid"
-            query(
-                "UPDATE workspaces SET subscription_status = %s WHERE stripe_subscription_id = %s",
-                (status_val, stripe_sub_id),
-                commit=True,
-            )
-
-    elif event_type == "customer.subscription.deleted":
-        stripe_sub_id = data_object.get("id")
-        if stripe_sub_id:
-            query(
-                "UPDATE workspaces SET subscription_status = 'unpaid' WHERE stripe_subscription_id = %s",
-                (stripe_sub_id,),
-                commit=True,
-            )
-
-    return {"status": "ok"}
+        log.error(f"Failed to update workspace after payment: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Database update failed: {str(e)}"
+        )

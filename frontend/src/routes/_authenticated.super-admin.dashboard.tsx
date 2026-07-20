@@ -1,4 +1,5 @@
 import { createFileRoute, Navigate, useNavigate } from "@tanstack/react-router";
+import { useState, useEffect } from "react";
 import {
   Users,
   Building2,
@@ -18,6 +19,7 @@ import { useAuth } from "@/providers/auth-provider";
 import { SUPER_ADMIN_NAV } from "@/config/navigation";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { apiFetch } from "@/services/api-client";
 import { db } from "@/mock/db";
 import {
   LineChart,
@@ -73,10 +75,30 @@ function SuperAdminDashboard() {
   if (!user) return null;
   if (user.role !== "super_admin") return <Navigate to="/unauthorized" />;
 
-  // Mock global aggregates
-  const totalOrgs = db.workspaces.length;
-  const totalOwners = db.users.filter(u => u.role === "owner").length;
-  const totalUsers = db.users.length;
+  const [stats, setStats] = useState({
+    totalOrgs: 0,
+    totalOwners: 0,
+    totalUsers: 0,
+    activeSubscriptions: 0,
+    mrr: 0,
+  });
+  const [workspaces, setWorkspaces] = useState<any[]>([]);
+
+  useEffect(() => {
+    apiFetch<{
+      totalOrgs: number;
+      totalOwners: number;
+      totalUsers: number;
+      activeSubscriptions: number;
+      mrr: number;
+    }>("/api/auth/super-admin/stats")
+      .then((data) => setStats(data))
+      .catch((err) => console.error("Error fetching stats:", err));
+
+    apiFetch<any[]>("/api/workspaces?userId=" + user.id)
+      .then((data) => setWorkspaces(data))
+      .catch((err) => console.error("Error fetching workspaces:", err));
+  }, [user.id]);
 
   return (
     <DashboardShell
@@ -89,36 +111,36 @@ function SuperAdminDashboard() {
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
           <KpiCard
             label="Total Organizations"
-            value={totalOrgs.toString()}
-            delta="+3 this week"
+            value={stats.totalOrgs.toString()}
+            delta="Live data"
             icon={Building2}
             tone="up"
           />
           <KpiCard
             label="Total PG Owners"
-            value={totalOwners.toString()}
-            delta="+2 this week"
+            value={stats.totalOwners.toString()}
+            delta="Live data"
             icon={Users}
             tone="up"
           />
           <KpiCard
             label="Platform Users"
-            value={totalUsers.toString()}
-            delta="+45 this month"
+            value={stats.totalUsers.toString()}
+            delta="Live data"
             icon={Users}
             tone="neutral"
           />
           <KpiCard
             label="Active Subscriptions"
-            value="120"
-            delta="94% retention"
+            value={stats.activeSubscriptions.toString()}
+            delta="Live data"
             icon={Tag}
             tone="up"
           />
           <KpiCard
             label="Platform MRR"
-            value="₹ 8.4L"
-            delta="+12.4% MoM"
+            value={`₹ ${stats.mrr.toLocaleString("en-IN")}`}
+            delta="Live data"
             icon={CreditCard}
             tone="up"
           />
@@ -212,43 +234,66 @@ function SuperAdminDashboard() {
                       <TableHead>Organization</TableHead>
                       <TableHead>Owner ID</TableHead>
                       <TableHead>Plan</TableHead>
+                      <TableHead>Amount Paid</TableHead>
                       <TableHead>Status</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {db.workspaces.slice(0, 4).map((org) => (
+                    {workspaces.slice(0, 4).map((org) => (
                       <TableRow key={org.id}>
                         <TableCell className="font-semibold text-foreground dark:text-[#F8FAFC]">{org.name}</TableCell>
-                        <TableCell className="text-muted-foreground dark:text-[#A8B4C5] text-xs font-mono">{org.ownerId}</TableCell>
+                        <TableCell className="text-muted-foreground dark:text-[#A8B4C5] text-xs font-mono">{org.ownerId || org.owner_id || "—"}</TableCell>
                         <TableCell>
-                          <Badge variant="category">{org.planId === "yearly" ? "Yearly" : "Monthly"}</Badge>
+                          <Badge variant="category">{(org.planId || org.plan_id) === "yearly" ? "Yearly" : "Monthly"}</Badge>
+                        </TableCell>
+                        <TableCell className="text-foreground dark:text-[#F8FAFC] font-semibold tabular-nums text-sm">
+                          {org.amountPaid ? `₹ ${org.amountPaid.toLocaleString("en-IN")}` : "₹ 0"}
                         </TableCell>
                         <TableCell>
-                          <Badge variant="success">Active</Badge>
+                          <Badge variant={org.subscription_status === "active" ? "success" : "neutral"}>
+                            {org.subscription_status || "Inactive"}
+                          </Badge>
                         </TableCell>
                       </TableRow>
                     ))}
+                    {workspaces.length === 0 && (
+                      <TableRow>
+                        <TableCell colSpan={5} className="text-center text-xs text-muted-foreground py-8">
+                          No organizations found in database.
+                        </TableCell>
+                      </TableRow>
+                    )}
                   </TableBody>
                 </Table>
               </div>
 
               {/* DARK MODE: Professional Separated Records */}
               <div className="hidden dark:flex flex-col gap-2 mt-2">
-                {db.workspaces.slice(0, 4).map((org) => (
+                {workspaces.slice(0, 4).map((org) => (
                   <div key={org.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-[14px_16px] rounded-[10px] bg-[rgba(17,30,49,0.68)] border border-[rgba(100,116,139,0.14)] hover:bg-[rgba(37,99,235,0.08)] transition-colors duration-150">
                     <div className="flex flex-col gap-0.5">
                       <span className="font-semibold text-[#F1F5F9]">{org.name}</span>
-                      <span className="text-[#8492A6] text-xs font-mono">Owner: {org.ownerId}</span>
+                      <span className="text-[#8492A6] text-xs font-mono">Owner: {org.ownerId || org.owner_id || "—"}</span>
                     </div>
                     <div className="flex items-center gap-3 mt-3 sm:mt-0">
-                      <Badge variant="category">{org.planId === "yearly" ? "Yearly" : "Monthly"}</Badge>
-                      <Badge variant="success">Active</Badge>
+                      <span className="text-[#F1F5F9] font-semibold text-xs tabular-nums bg-slate-800/40 dark:bg-[rgba(30,43,67,0.75)] border border-[rgba(100,116,139,0.16)] px-2 py-1 rounded-md">
+                        {org.amountPaid ? `₹ ${org.amountPaid.toLocaleString("en-IN")}` : "₹ 0"}
+                      </span>
+                      <Badge variant="category">{(org.planId || org.plan_id) === "yearly" ? "Yearly" : "Monthly"}</Badge>
+                      <Badge variant={org.subscription_status === "active" ? "success" : "neutral"}>
+                        {org.subscription_status || "Inactive"}
+                      </Badge>
                       <Button variant="ghost" size="sm" className="ml-2 text-[#60A5FA] hover:text-[#93C5FD] hover:bg-transparent px-2 -mr-2" onClick={() => navigate({ to: "/super-admin/properties" })}>
                         View <ArrowRight className="ml-1 h-3 w-3" />
                       </Button>
                     </div>
                   </div>
                 ))}
+                {workspaces.length === 0 && (
+                  <div className="text-center text-xs text-muted-foreground py-8">
+                    No organizations found in database.
+                  </div>
+                )}
               </div>
             </div>
           </section>

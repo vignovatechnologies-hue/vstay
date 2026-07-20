@@ -20,6 +20,7 @@ def _fmt(r: dict) -> dict:
         "subscriptionStatus": r.get("subscription_status", "unpaid"),
         "stripeSubscriptionId": r.get("stripe_subscription_id"),
         "stripeCustomerId": r.get("stripe_customer_id"),
+        "amountPaid": r.get("amount_paid", 0),
         "createdAt": r["created_at"].isoformat() if hasattr(r.get("created_at"), "isoformat") else str(r.get("created_at", "")),
     }
 

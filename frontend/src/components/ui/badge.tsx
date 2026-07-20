@@ -19,6 +19,7 @@ const badgeVariants = cva(
         danger: "border-[#FECACA] bg-[#FEF2F2] text-[#B91C1C] dark:border-[rgba(248,113,113,0.28)] dark:bg-[rgba(239,68,68,0.15)] dark:text-[#FCA5A5] font-semibold text-[11px] px-[9px] py-[4px] rounded-full",
         info: "border-[#BFDBFE] bg-[#EFF6FF] text-[#1D4ED8] dark:border-[rgba(96,165,250,0.28)] dark:bg-[rgba(59,130,246,0.16)] dark:text-[#93C5FD] font-semibold text-[11px] px-[9px] py-[4px] rounded-full",
         category: "border-slate-300/60 bg-slate-100 text-slate-700 dark:border-[rgba(100,116,139,0.16)] dark:bg-[rgba(30,43,67,0.75)] dark:text-[#CBD5E1] font-semibold text-[11px] px-[9px] py-[4px] rounded-full",
+        neutral: "border-slate-300/60 bg-slate-100 text-slate-700 dark:border-[rgba(100,116,139,0.16)] dark:bg-[rgba(30,43,67,0.75)] dark:text-[#CBD5E1] font-semibold text-[11px] px-[9px] py-[4px] rounded-full",
       },
     },
     defaultVariants: {

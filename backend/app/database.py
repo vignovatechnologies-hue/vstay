@@ -3,6 +3,9 @@ Database connection pool and query helpers for the Hostly backend.
 """
 import os
 import logging
+import sqlite3
+import re
+import json
 from contextlib import contextmanager
 
 import psycopg2
@@ -43,7 +46,326 @@ def cursor(commit: bool = False):
             cur.close()
 
 
+# ── SQLite Cache/Temporary Database for Demo Accounts ──────────────────────────
+
+DEMO_WORKSPACE_IDS = ["pg_greenhaven", "pg_skyline", "pg_meridian", "pg_lotus"]
+DEMO_USER_IDS = ["u_super_1", "u_owner_multi", "u_owner_single", "u_manager_1", "u_reception_1", "u_tenant_1"]
+DEMO_EMAILS = [
+    "super@hostly.app",
+    "owner@hostly.app",
+    "single@hostly.app",
+    "manager@hostly.app",
+    "reception@hostly.app",
+    "tenant@hostly.app"
+]
+
+DEMO_DB_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "demo_temp.db")
+
+
+def is_demo_query(sql: str, params=None) -> bool:
+    """Detect if a query belongs to a demo workspace, user, or email."""
+    if params:
+        params_str = str(params).lower()
+        if any(wid in params_str for wid in DEMO_WORKSPACE_IDS) or \
+           any(uid in params_str for uid in DEMO_USER_IDS) or \
+           any(email in params_str for email in DEMO_EMAILS):
+            return True
+
+    sql_lower = sql.lower()
+    return any(wid in sql_lower for wid in DEMO_WORKSPACE_IDS) or \
+           any(uid in sql_lower for uid in DEMO_USER_IDS) or \
+           any(email in sql_lower for email in DEMO_EMAILS)
+
+
+def translate_sql_to_sqlite(sql: str, params) -> tuple[str, any]:
+    """Translate PostgreSQL-specific SQL syntax to SQLite-compatible syntax."""
+    # 1. Replace %s placeholder with ?
+    sql = sql.replace("%s", "?")
+
+    # 2. Replace array constructor syntax
+    sql = re.sub(r'ARRAY\s*\[\s*\?\s*\]::TEXT\s*\[\s*\]', '?', sql, flags=re.IGNORECASE)
+    sql = re.sub(r'ARRAY\s*\[\s*\?\s*\]::VARCHAR\s*\[\s*\]', '?', sql, flags=re.IGNORECASE)
+
+    # 3. Translate `= ANY(?)` to `IN (?, ?, ...)`
+    if params:
+        new_params = []
+        for p in params:
+            if isinstance(p, (list, tuple)):
+                # If there's an ANY clause, expand it
+                has_any = re.search(r'=\s*ANY\s*\(\s*\?\s*\)', sql, flags=re.IGNORECASE) or \
+                          re.search(r'=\s*ANY\s*\(\s*\?\s*::\s*TEXT\s*\[\s*\]\s*\)', sql, flags=re.IGNORECASE) or \
+                          re.search(r'=\s*ANY\s*\(\s*\?\s*::\s*VARCHAR\s*\[\s*\]\s*\)', sql, flags=re.IGNORECASE)
+                if has_any:
+                    if len(p) == 0:
+                        # SQLite doesn't allow empty IN (), replace with impossible condition or empty check
+                        sql = re.sub(r'=\s*ANY\s*\(\s*\?\s*\)', 'IN (NULL)', sql, flags=re.IGNORECASE)
+                        sql = re.sub(r'=\s*ANY\s*\(\s*\?\s*::\s*TEXT\s*\[\s*\]\s*\)', 'IN (NULL)', sql, flags=re.IGNORECASE)
+                        sql = re.sub(r'=\s*ANY\s*\(\s*\?\s*::\s*VARCHAR\s*\[\s*\]\s*\)', 'IN (NULL)', sql, flags=re.IGNORECASE)
+                    else:
+                        placeholders = ", ".join(["?"] * len(p))
+                        sql = re.sub(r'=\s*ANY\s*\(\s*\?\s*\)', f'IN ({placeholders})', sql, flags=re.IGNORECASE)
+                        sql = re.sub(r'=\s*ANY\s*\(\s*\?\s*::\s*TEXT\s*\[\s*\]\s*\)', f'IN ({placeholders})', sql, flags=re.IGNORECASE)
+                        sql = re.sub(r'=\s*ANY\s*\(\s*\?\s*::\s*VARCHAR\s*\[\s*\]\s*\)', f'IN ({placeholders})', sql, flags=re.IGNORECASE)
+                        new_params.extend(p)
+                else:
+                    # Serialise regular python lists as JSON strings in SQLite
+                    new_params.append(json.dumps(list(p)))
+            elif isinstance(p, dict):
+                # Serialise python dicts (like JSON settings) as JSON strings
+                new_params.append(json.dumps(p))
+            else:
+                new_params.append(p)
+        params = tuple(new_params)
+
+    return sql, params
+
+
+def init_sqlite_db():
+    """Create all tables in SQLite temporary/cache database."""
+    conn = sqlite3.connect(DEMO_DB_FILE)
+    cur = conn.cursor()
+    
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS users (
+            id TEXT PRIMARY KEY,
+            email TEXT UNIQUE NOT NULL,
+            password TEXT,
+            full_name TEXT,
+            phone TEXT,
+            role TEXT NOT NULL,
+            workspace_ids TEXT DEFAULT '[]',
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+    """)
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS workspaces (
+            id TEXT PRIMARY KEY,
+            name TEXT NOT NULL,
+            owner_id TEXT NOT NULL,
+            city TEXT,
+            address TEXT,
+            initials TEXT,
+            total_beds INTEGER DEFAULT 50,
+            occupied_beds INTEGER DEFAULT 0,
+            accent TEXT DEFAULT 'blue',
+            plan_id TEXT,
+            subscription_status TEXT DEFAULT 'unpaid',
+            stripe_subscription_id TEXT,
+            stripe_customer_id TEXT,
+            amount_paid INTEGER DEFAULT 0,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+    """)
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS rooms (
+            id TEXT PRIMARY KEY,
+            workspace_id TEXT NOT NULL,
+            room TEXT NOT NULL,
+            floor TEXT,
+            type TEXT,
+            rent TEXT,
+            beds TEXT,
+            status TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+    """)
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS tenants (
+            id TEXT PRIMARY KEY,
+            workspace_id TEXT NOT NULL,
+            name TEXT NOT NULL,
+            initials TEXT,
+            room TEXT,
+            phone TEXT,
+            email TEXT,
+            since TEXT,
+            rent TEXT,
+            kyc TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+    """)
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS staff (
+            id TEXT PRIMARY KEY,
+            workspace_id TEXT NOT NULL,
+            name TEXT NOT NULL,
+            initials TEXT,
+            role TEXT,
+            phone TEXT,
+            email TEXT,
+            shift TEXT,
+            status TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+    """)
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS complaints (
+            id TEXT PRIMARY KEY,
+            workspace_id TEXT NOT NULL,
+            tenant TEXT,
+            room TEXT,
+            category TEXT,
+            priority TEXT,
+            status TEXT,
+            description TEXT,
+            raised_on TEXT,
+            resolved_on TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+    """)
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS invoices (
+            id TEXT PRIMARY KEY,
+            workspace_id TEXT NOT NULL,
+            tenant TEXT,
+            room TEXT,
+            month TEXT,
+            amount TEXT,
+            date TEXT,
+            method TEXT,
+            status TEXT DEFAULT 'due',
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+    """)
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS announcements (
+            id TEXT PRIMARY KEY,
+            workspace_id TEXT,
+            title TEXT,
+            body TEXT,
+            audience TEXT,
+            pinned BOOLEAN DEFAULT 0,
+            author TEXT,
+            status TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+    """)
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS vehicles (
+            id TEXT PRIMARY KEY,
+            user_id TEXT NOT NULL,
+            workspace_id TEXT,
+            type TEXT,
+            reg_number TEXT,
+            make TEXT,
+            model TEXT,
+            color TEXT,
+            parking_required TEXT,
+            parking_slot TEXT,
+            status TEXT DEFAULT 'Pending',
+            notes TEXT,
+            added_at TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+    """)
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS documents (
+            id TEXT PRIMARY KEY,
+            user_id TEXT NOT NULL,
+            workspace_id TEXT,
+            name TEXT,
+            type TEXT,
+            size TEXT,
+            uploaded TEXT,
+            status TEXT DEFAULT 'pending',
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+    """)
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS laundry_bookings (
+            id TEXT PRIMARY KEY,
+            user_id TEXT NOT NULL,
+            workspace_id TEXT,
+            date TEXT,
+            slot TEXT,
+            service TEXT,
+            machine TEXT,
+            status TEXT DEFAULT 'upcoming',
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+    """)
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS tenant_payments (
+            id TEXT PRIMARY KEY,
+            user_id TEXT NOT NULL,
+            workspace_id TEXT,
+            desc_text TEXT,
+            amount TEXT,
+            date TEXT,
+            method TEXT,
+            status TEXT DEFAULT 'due',
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+    """)
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS settings_store (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            store_key TEXT NOT NULL,
+            user_id TEXT,
+            workspace_id TEXT,
+            value TEXT NOT NULL,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+    """)
+    conn.commit()
+    cur.close()
+    conn.close()
+
+
+def query_sqlite(sql: str, params=None, *, fetch: bool = False):
+    """Execute SQL query against SQLite temporary database."""
+    if not os.path.exists(DEMO_DB_FILE):
+        init_sqlite_db()
+
+    sql, params = translate_sql_to_sqlite(sql, params)
+
+    conn = sqlite3.connect(DEMO_DB_FILE)
+    conn.row_factory = sqlite3.Row
+    cur = conn.cursor()
+    try:
+        cur.execute(sql, params or ())
+        if fetch:
+            rows = cur.fetchall()
+            results = []
+            for r in rows:
+                row_dict = dict(r)
+                # Unpack serialised array fields back to lists
+                if "workspace_ids" in row_dict and isinstance(row_dict["workspace_ids"], str):
+                    try:
+                        row_dict["workspace_ids"] = json.loads(row_dict["workspace_ids"])
+                    except Exception:
+                        val = row_dict["workspace_ids"].strip('{}[]()')
+                        row_dict["workspace_ids"] = [v.strip().strip('"\'') for v in val.split(',')] if val else []
+                # Unpack serialised JSON value field back to dict
+                if "value" in row_dict and isinstance(row_dict["value"], str):
+                    try:
+                        row_dict["value"] = json.loads(row_dict["value"])
+                    except Exception:
+                        pass
+                results.append(row_dict)
+            return results
+        conn.commit()
+        return None
+    except Exception as e:
+        conn.rollback()
+        logging.error(f"SQLite execution failed: {e} | Query: {sql}")
+        raise
+    finally:
+        cur.close()
+        conn.close()
+
+
+def query_one_sqlite(sql: str, params=None):
+    """Retrieve a single row from SQLite temporary database."""
+    res = query_sqlite(sql, params, fetch=True)
+    return res[0] if res else None
+
+
+
 def query(sql: str, params=None, *, fetch: bool = False, commit: bool = False):
+    if is_demo_query(sql, params):
+        return query_sqlite(sql, params, fetch=fetch)
+
     with cursor(commit=commit) as cur:
         cur.execute(sql, params or ())
         if fetch:
@@ -52,6 +374,9 @@ def query(sql: str, params=None, *, fetch: bool = False, commit: bool = False):
 
 
 def query_one(sql: str, params=None, *, commit: bool = False):
+    if is_demo_query(sql, params):
+        return query_one_sqlite(sql, params)
+
     with cursor(commit=commit) as cur:
         cur.execute(sql, params or ())
         return cur.fetchone()
@@ -60,6 +385,14 @@ def query_one(sql: str, params=None, *, commit: bool = False):
 def init_db():
     """Create tables and seed initial data if they don't exist."""
     logging.info("Initializing database schema...")
+    
+    # Initialize SQLite database cache for demo accounts
+    try:
+        init_sqlite_db()
+        logging.info("SQLite temporary cache database initialized successfully.")
+    except Exception as e:
+        logging.error(f"Failed to initialize SQLite cache: {e}")
+
 
     # ── Core tables ──────────────────────────────────────────────
     query("""
@@ -90,6 +423,7 @@ def init_db():
             subscription_status VARCHAR(50) DEFAULT 'unpaid',
             stripe_subscription_id VARCHAR(255),
             stripe_customer_id VARCHAR(255),
+            amount_paid   INTEGER DEFAULT 0,
             created_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );
     """, commit=True)
@@ -97,6 +431,7 @@ def init_db():
     query("ALTER TABLE workspaces ADD COLUMN IF NOT EXISTS subscription_status VARCHAR(50) DEFAULT 'unpaid';", commit=True)
     query("ALTER TABLE workspaces ADD COLUMN IF NOT EXISTS stripe_subscription_id VARCHAR(255);", commit=True)
     query("ALTER TABLE workspaces ADD COLUMN IF NOT EXISTS stripe_customer_id VARCHAR(255);", commit=True)
+    query("ALTER TABLE workspaces ADD COLUMN IF NOT EXISTS amount_paid INTEGER DEFAULT 0;", commit=True)
 
     # ── Feature tables ────────────────────────────────────────────
     query("""
@@ -325,15 +660,15 @@ def _seed_workspaces():
         return
     logging.info("Seeding workspaces...")
     rows = [
-        ("pg_greenhaven", "Greenhaven Residency",  "u_owner_multi",  "Bengaluru",  "12, 5th Cross, Indiranagar, Bengaluru 560038",  "GR", 84,  71,  "emerald"),
-        ("pg_skyline",    "Skyline Stays",          "u_owner_multi",  "Pune",       "Sector 14, Magarpatta, Pune 411028",            "SS", 56,  49,  "blue"),
-        ("pg_meridian",   "Meridian Co-Living",     "u_owner_multi",  "Hyderabad",  "Plot 18, HITEC City, Hyderabad 500081",         "MC", 120, 98,  "violet"),
-        ("pg_lotus",      "Lotus Ladies PG",        "u_owner_single", "Mumbai",     "21, Linking Road, Bandra West, Mumbai 400050", "LP", 48,  44,  "rose"),
+        ("pg_greenhaven", "Greenhaven Residency",  "u_owner_multi",  "Bengaluru",  "12, 5th Cross, Indiranagar, Bengaluru 560038",  "GR", 84,  71,  "emerald", 9999),
+        ("pg_skyline",    "Skyline Stays",          "u_owner_multi",  "Pune",       "Sector 14, Magarpatta, Pune 411028",            "SS", 56,  49,  "blue", 9999),
+        ("pg_meridian",   "Meridian Co-Living",     "u_owner_multi",  "Hyderabad",  "Plot 18, HITEC City, Hyderabad 500081",         "MC", 120, 98,  "violet", 9999),
+        ("pg_lotus",      "Lotus Ladies PG",        "u_owner_single", "Mumbai",     "21, Linking Road, Bandra West, Mumbai 400050", "LP", 48,  44,  "rose", 9999),
     ]
-    for wid, name, oid, city, addr, init, tot, occ, acc in rows:
+    for wid, name, oid, city, addr, init, tot, occ, acc, amt in rows:
         query(
-            "INSERT INTO workspaces (id,name,owner_id,city,address,initials,total_beds,occupied_beds,accent,plan_id,subscription_status) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,'yearly','active')",
-            (wid, name, oid, city, addr, init, tot, occ, acc), commit=True,
+            "INSERT INTO workspaces (id,name,owner_id,city,address,initials,total_beds,occupied_beds,accent,plan_id,subscription_status,amount_paid) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,'yearly','active',%s)",
+            (wid, name, oid, city, addr, init, tot, occ, acc, amt), commit=True,
         )
 
 

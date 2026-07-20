@@ -15,4 +15,5 @@ class WorkspaceModel(BaseModel):
     occupiedBeds: int = 0
     accent: str = "blue"
     planId: Optional[str] = None
+    amountPaid: int = 0
     createdAt: str

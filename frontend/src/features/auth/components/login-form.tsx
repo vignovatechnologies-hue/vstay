@@ -20,7 +20,7 @@ const DEMO_ACCOUNTS = [
   { label: "Tenant", email: "tenant@hostly.app" },
 ] as const;
 
-export function LoginForm() {
+export function LoginForm({ expectedRole }: { expectedRole?: "owner" | "super_admin" }) {
   const navigate = useNavigate();
   const { login } = useAuth();
   const [serverError, setServerError] = useState<string | null>(null);
@@ -34,7 +34,7 @@ export function LoginForm() {
   async function onSubmit(values: LoginFormValues) {
     setServerError(null);
     try {
-      const result = await login(values.email, values.password);
+      const result = await login(values.email, values.password, expectedRole);
       toast.success(`Welcome back, ${result.user.fullName.split(" ")[0]}`);
       if (result.requiresWorkspaceSelection) {
         navigate({ to: "/workspace-select" });

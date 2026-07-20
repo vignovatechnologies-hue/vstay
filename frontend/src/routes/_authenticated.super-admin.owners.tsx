@@ -1,6 +1,6 @@
 import { createFileRoute, Navigate } from "@tanstack/react-router";
 import { Users, Plus, Search, MoreHorizontal } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { DashboardShell } from "@/components/layout/dashboard-shell";
 import { KpiCard } from "@/components/layout/kpi-card";
@@ -28,6 +28,7 @@ import {
 } from "@/components/ui/dialog";
 import { useAuth } from "@/providers/auth-provider";
 import { SUPER_ADMIN_NAV } from "@/config/navigation";
+import { apiFetch } from "@/services/api-client";
 import { db } from "@/mock/db";
 
 export const Route = createFileRoute("/_authenticated/super-admin/owners")({
@@ -112,7 +113,8 @@ const STATUS: Record<string, { label: string; variant: "success" | "info" | "dan
 
 function OwnersPage() {
   const { user } = useAuth();
-  const [items, setItems] = useState(OWNERS);
+  const [items, setItems] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({
     name: "",
@@ -122,10 +124,35 @@ function OwnersPage() {
     planId: "Starter",
   });
 
+  function fetchOwners() {
+    setLoading(true);
+    apiFetch<any[]>("/api/auth/users?role=owner")
+      .then((data) => {
+        const mapped = data.map((u) => ({
+          name: u.fullName || u.email.split("@")[0],
+          initials: u.fullName ? u.fullName.split(" ").map((n: string) => n[0]).join("").toUpperCase() : "OW",
+          email: u.email,
+          properties: u.workspaceIds ? u.workspaceIds.length : 0,
+          tenants: u.workspaceIds ? u.workspaceIds.length * 15 : 0,
+          plan: u.workspaceIds ? "Active Plan" : "No Plan",
+          mrr: "—",
+          status: "active" as const,
+          joined: new Date(u.createdAt || Date.now()).toLocaleDateString("en-IN", { month: "short", year: "numeric" }),
+        }));
+        setItems(mapped);
+      })
+      .catch((err) => console.error("Error fetching owners:", err))
+      .finally(() => setLoading(false));
+  }
+
+  useEffect(() => {
+    fetchOwners();
+  }, []);
+
   if (!user) return null;
   if (user.role !== "super_admin") return <Navigate to="/unauthorized" />;
 
-  function submitInvite() {
+  async function submitInvite() {
     if (!form.name.trim() || !form.email.trim() || !form.phone.trim() || !form.hostelName.trim()) {
       toast.error("All fields are required");
       return;
@@ -136,95 +163,28 @@ function OwnersPage() {
     const cleanPhone = form.phone.replace(/\D/g, "");
     const lastFourPhone = cleanPhone.length >= 4 ? cleanPhone.slice(-4) : cleanPhone || "0000";
     const generatedPassword = `${cleanName}${lastFourPhone}`;
+    const planId = form.planId === "Starter" ? "monthly" : form.planId === "Growth" ? "monthly" : "yearly";
 
-    const workspaceId = `pg_${form.hostelName.toLowerCase().replace(/\s+/g, "_")}_${Date.now().toString().slice(-4)}`;
-    const userId = `u_owner_${Date.now()}`;
-    const initials =
-      form.hostelName
-        .split(/\s+/)
-        .map((w) => w[0])
-        .join("")
-        .toUpperCase()
-        .slice(0, 2) || "PG";
+    try {
+      await apiFetch("/api/auth/signup", {
+        method: "POST",
+        body: JSON.stringify({
+          email: emailLower,
+          fullName: form.name,
+          phone: form.phone,
+          hostelName: form.hostelName,
+          planId: planId,
+          password: generatedPassword,
+        }),
+      });
 
-    // Add new workspace to mock database
-    db.workspaces.push({
-      id: workspaceId,
-      name: form.hostelName,
-      ownerId: userId,
-      city: "Bengaluru",
-      address: "12, MG Road, Bengaluru 560001",
-      initials,
-      totalBeds: 50,
-      occupiedBeds: 0,
-      accent: "blue" as const,
-      planId: form.planId === "Starter" ? "monthly" : "yearly",
-      createdAt: new Date().toISOString(),
-    });
-
-    // Add new owner user to mock database
-    db.users.push({
-      id: userId,
-      email: emailLower,
-      fullName: form.name,
-      phone: form.phone,
-      role: "owner",
-      workspaceIds: [workspaceId],
-      password: generatedPassword,
-      createdAt: new Date().toISOString(),
-    });
-
-    // Add simulated email from Super Admin to PG Owner
-    const linkUrl = `${window.location.origin}/login?inviteEmail=${encodeURIComponent(emailLower)}&role=owner`;
-    const newEmail = {
-      id: `email_${Date.now()}`,
-      from: "super@hostly.app",
-      to: emailLower,
-      subject: `Hostly Operator Invitation for ${form.name}`,
-      body: `Hello ${form.name},
-
-You have been invited by the Hostly Super Admin (super@hostly.app) to manage your PG properties.
-
-Your new workspace "${form.hostelName}" has been successfully created.
-
-Use this link to log in directly:
-${linkUrl}
-
-Or log in manually at the login page using the following credentials:
-- Username/Email: ${emailLower}
-- Password: ${generatedPassword}
-
-Note: The default password consists of the first 4 letters of your name and the last 4 digits of your phone number.`,
-      sentAt: new Date().toISOString(),
-      linkUrl,
-    };
-
-    db.emails.unshift(newEmail);
-    db.save();
-
-    // Add to local state list for display in the table
-    const parts = form.name.trim().split(/\s+/);
-    const initialsName = ((parts[0]?.[0] ?? "") + (parts[1]?.[0] ?? "")).toUpperCase() || "O";
-
-    setItems([
-      {
-        name: form.name,
-        initials: initialsName,
-        email: emailLower,
-        properties: 1,
-        tenants: 0,
-        plan: form.planId,
-        mrr:
-          form.planId === "Starter" ? "₹ 999" : form.planId === "Growth" ? "₹ 2,499" : "₹ 12,996",
-        status: "active" as const,
-        joined: "Just now",
-      },
-      ...items,
-    ]);
-
-    setForm({ name: "", email: "", phone: "", hostelName: "", planId: "Starter" });
-    setOpen(false);
-    toast.success(`Invitation email sent to ${emailLower}`);
+      toast.success(`Owner invited successfully! Password generated: ${generatedPassword}`);
+      setForm({ name: "", email: "", phone: "", hostelName: "", planId: "Starter" });
+      setOpen(false);
+      fetchOwners();
+    } catch (err: any) {
+      toast.error(err.message || "Failed to invite owner.");
+    }
   }
 
   return (

@@ -98,3 +98,57 @@ def me(user_id: str):
     if not user:
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail="User not found")
     return _fmt_user(user)
+
+
+@router.get("/users")
+def list_users(role: Optional[str] = None):
+    """List all users, optionally filtered by role."""
+    if role:
+        rows = query("SELECT * FROM users WHERE role = %s ORDER BY created_at DESC", (role,), fetch=True)
+    else:
+        rows = query("SELECT * FROM users ORDER BY created_at DESC", fetch=True)
+    return [_fmt_user(r) for r in (rows or [])]
+
+
+@router.get("/super-admin/stats")
+def super_admin_stats():
+    """Calculate platform aggregates dynamically for the Super Admin dashboard."""
+    # 1. Counts from database
+    orgs_count = query_one("SELECT COUNT(*) FROM workspaces")["count"]
+    owners_count = query_one("SELECT COUNT(*) FROM users WHERE role = 'owner'")["count"]
+    users_count = query_one("SELECT COUNT(*) FROM users")["count"]
+    active_count = query_one("SELECT COUNT(*) FROM workspaces WHERE subscription_status = 'active'")["count"]
+    
+    # 2. Retrieve dynamic plans pricing from settings store
+    plans_setting = query_one("SELECT value FROM settings_store WHERE store_key = 'hostly.plans.config'")
+    plans = []
+    if plans_setting and "value" in plans_setting:
+        plans = plans_setting["value"].get("plans", [])
+        
+    monthly_price = 999
+    yearly_price = 9999
+    for p in plans:
+        if p.get("id") == "monthly":
+            monthly_price = p.get("price", 999)
+        elif p.get("id") == "yearly":
+            yearly_price = p.get("price", 9999)
+
+    # 3. Fetch active workspaces
+    active_ws = query("SELECT plan_id FROM workspaces WHERE subscription_status = 'active'", fetch=True) or []
+    
+    mrr = 0
+    for w in active_ws:
+        plan_id = w.get("plan_id")
+        if plan_id == "monthly":
+            mrr += monthly_price
+        elif plan_id == "yearly":
+            mrr += int(yearly_price / 12)
+
+    return {
+        "totalOrgs": orgs_count,
+        "totalOwners": owners_count,
+        "totalUsers": users_count,
+        "activeSubscriptions": active_count,
+        "mrr": mrr
+    }
+
