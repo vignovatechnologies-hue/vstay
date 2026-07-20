@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "vite dev",
     "build": "vite build",
-    "start": "node dist/server/server.js",
+    "start": "vite preview --host 0.0.0.0 --port $PORT",
     "postinstall": "vite build",
     "build:dev": "vite build --mode development",
     "build:preview": "vite build --mode preview",

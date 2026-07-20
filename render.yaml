@@ -18,7 +18,7 @@ services:
     region: oregon
     rootDir: frontend
     buildCommand: bun install && bun run build
-    startCommand: node dist/server/server.js
+    startCommand: npx vite preview --host 0.0.0.0 --port $PORT
     envVars:
       - key: VITE_API_URL
         fromService:
