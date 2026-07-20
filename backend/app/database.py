@@ -92,7 +92,12 @@ def translate_sql_to_sqlite(sql: str, params) -> tuple[str, any]:
     # 1. Replace %s placeholder with ?
     sql = sql.replace("%s", "?")
 
-    # 2. Replace array constructor syntax
+    # 2. Replace Postgres DDL types for SQLite compatibility
+    sql = re.sub(r'\bSERIAL\s+PRIMARY\s+KEY\b', 'INTEGER PRIMARY KEY AUTOINCREMENT', sql, flags=re.IGNORECASE)
+    sql = re.sub(r'\bTEXT\[\]\s+DEFAULT\s+\'\{\}\'', "TEXT DEFAULT '[]'", sql, flags=re.IGNORECASE)
+    sql = re.sub(r'\bVARCHAR\(\d+\)', 'TEXT', sql, flags=re.IGNORECASE)
+
+    # 3. Replace array constructor syntax
     sql = re.sub(r'ARRAY\s*\[\s*\?\s*\]::TEXT\s*\[\s*\]', '?', sql, flags=re.IGNORECASE)
     sql = re.sub(r'ARRAY\s*\[\s*\?\s*\]::VARCHAR\s*\[\s*\]', '?', sql, flags=re.IGNORECASE)
 
@@ -402,6 +407,10 @@ def init_db():
         logging.info("SQLite temporary cache database initialized successfully.")
     except Exception as e:
         logging.error(f"Failed to initialize SQLite cache: {e}")
+
+    if pool is None:
+        logging.info("Running in SQLite mode; skipping PostgreSQL schema creation.")
+        return
 
 
     # ── Core tables ──────────────────────────────────────────────
