@@ -5,6 +5,9 @@ import tsConfigPaths from "vite-tsconfig-paths";
 import react from "@vitejs/plugin-react";
 
 export default defineConfig(({ mode }) => ({
+  preview: {
+    allowedHosts: true,
+  },
   build: {
     outDir: mode === "preview" ? "hostly-preview" : "dist",
   },
