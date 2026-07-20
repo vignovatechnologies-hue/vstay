@@ -13,7 +13,6 @@ import { ROLE_HOME } from "@/config/roles";
 import { loginSchema, type LoginFormValues } from "../schemas";
 
 const DEMO_ACCOUNTS = [
-  { label: "Super Admin", email: "super@hostly.app" },
   { label: "Owner (3 PGs)", email: "owner@hostly.app" },
   { label: "Owner (1 PG)", email: "single@hostly.app" },
   { label: "Staff · Manager", email: "manager@hostly.app" },

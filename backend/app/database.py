@@ -61,9 +61,8 @@ def cursor(commit: bool = False):
 # ── SQLite Cache/Temporary Database for Demo Accounts ──────────────────────────
 
 DEMO_WORKSPACE_IDS = ["pg_greenhaven", "pg_skyline", "pg_meridian", "pg_lotus"]
-DEMO_USER_IDS = ["u_super_1", "u_owner_multi", "u_owner_single", "u_manager_1", "u_reception_1", "u_tenant_1"]
+DEMO_USER_IDS = ["u_owner_multi", "u_owner_single", "u_manager_1", "u_reception_1", "u_tenant_1"]
 DEMO_EMAILS = [
-    "super@hostly.app",
     "owner@hostly.app",
     "single@hostly.app",
     "manager@hostly.app",
@@ -671,7 +670,6 @@ def _seed_users():
         return
     logging.info("Seeding users...")
     rows = [
-        ("u_super_1",      "super@hostly.app",     "Aanya Mehta",  "",                   "super_admin", []),
         ("u_owner_multi",  "owner@hostly.app",      "Rohan Verma",  "+91 98200 12345",    "owner",       ["pg_greenhaven", "pg_skyline", "pg_meridian"]),
         ("u_owner_single", "single@hostly.app",     "Kavya Iyer",   "+91 98765 22110",    "owner",       ["pg_lotus"]),
         ("u_manager_1",    "manager@hostly.app",    "Devang Shah",  "",                   "manager",     ["pg_greenhaven"]),

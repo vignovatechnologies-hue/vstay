@@ -25,7 +25,6 @@ log = logging.getLogger(__name__)
 # ── Constants ──────────────────────────────────────────────────────────────────
 
 DEMO_USER_IDS = [
-    "u_super_1",
     "u_owner_multi",
     "u_owner_single",
     "u_manager_1",

@@ -2,14 +2,6 @@ import type { User } from "@/types/auth";
 
 export const SEED_USERS: User[] = [
   {
-    id: "u_super_1",
-    email: "super@hostly.app",
-    fullName: "Aanya Mehta",
-    role: "super_admin",
-    workspaceIds: [],
-    createdAt: "2024-01-04T10:00:00Z",
-  },
-  {
     id: "u_owner_multi",
     email: "owner@hostly.app",
     fullName: "Rohan Verma",
