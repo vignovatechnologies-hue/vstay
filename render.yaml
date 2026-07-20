@@ -14,15 +14,12 @@ services:
 
   - type: web
     name: hostly-frontend
-    env: node
+    env: static
     region: oregon
     rootDir: frontend
     buildCommand: bun install && bun run build
-    startCommand: node .output/server/index.mjs
-    envVars:
-      - key: VITE_API_BASE_URL
-        fromService:
-          type: web
-          name: hostly-backend
-          property: host
-        transformation: https://{value}
+    staticPublishPath: dist/client
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
