@@ -34,6 +34,8 @@ else:
 
 @contextmanager
 def get_conn():
+    if pool is None:
+        raise RuntimeError("PostgreSQL pool is not initialized.")
     conn = pool.getconn()
     try:
         yield conn
