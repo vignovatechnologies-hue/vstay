@@ -6,6 +6,7 @@ import logging
 import sqlite3
 import re
 import json
+from typing import Optional
 from contextlib import contextmanager
 
 import psycopg2
@@ -16,12 +17,19 @@ from dotenv import load_dotenv
 load_dotenv()
 
 DATABASE_URL = os.getenv("DATABASE_URL")
-if not DATABASE_URL:
-    raise ValueError("DATABASE_URL environment variable is not set")
-if DATABASE_URL.startswith("postgres://"):
-    DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
+pool: Optional[ThreadedConnectionPool] = None
 
-pool: ThreadedConnectionPool = ThreadedConnectionPool(minconn=1, maxconn=20, dsn=DATABASE_URL)
+if DATABASE_URL:
+    if DATABASE_URL.startswith("postgres://"):
+        DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
+    try:
+        pool = ThreadedConnectionPool(minconn=1, maxconn=20, dsn=DATABASE_URL)
+        logging.info("Successfully connected to PostgreSQL database.")
+    except Exception as e:
+        logging.warning(f"Could not connect to PostgreSQL ({e}). Falling back to SQLite mode.")
+        pool = None
+else:
+    logging.info("DATABASE_URL is not set. Running backend with SQLite database mode.")
 
 
 @contextmanager
@@ -365,7 +373,7 @@ def query_one_sqlite(sql: str, params=None):
 
 
 def query(sql: str, params=None, *, fetch: bool = False, commit: bool = False):
-    if is_demo_query(sql, params):
+    if pool is None or is_demo_query(sql, params):
         return query_sqlite(sql, params, fetch=fetch)
 
     with cursor(commit=commit) as cur:
@@ -376,7 +384,7 @@ def query(sql: str, params=None, *, fetch: bool = False, commit: bool = False):
 
 
 def query_one(sql: str, params=None, *, commit: bool = False):
-    if is_demo_query(sql, params):
+    if pool is None or is_demo_query(sql, params):
         return query_one_sqlite(sql, params)
 
     with cursor(commit=commit) as cur:
