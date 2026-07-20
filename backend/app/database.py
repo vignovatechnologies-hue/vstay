@@ -410,6 +410,15 @@ def init_db():
     except Exception as e:
         logging.error(f"Failed to initialize SQLite cache: {e}")
 
+    # Seed demo data (for both Postgres and SQLite modes)
+    _seed_users()
+    _seed_workspaces()
+    _seed_rooms()
+    _seed_tenants()
+    _seed_staff()
+    _seed_complaints()
+    _seed_invoices()
+
     if pool is None:
         logging.info("Running in SQLite mode; skipping PostgreSQL schema creation.")
         return
@@ -656,8 +665,9 @@ def init_db():
 # ── Seed helpers ──────────────────────────────────────────────────────────────
 
 def _seed_users():
-    count = query_one("SELECT COUNT(*) FROM users")
-    if count and int(count["count"]) > 0:
+    count = query_one("SELECT COUNT(*) AS cnt FROM users")
+    c_val = count.get("cnt") if count else 0
+    if c_val and int(c_val) > 0:
         return
     logging.info("Seeding users...")
     rows = [
@@ -676,8 +686,9 @@ def _seed_users():
 
 
 def _seed_workspaces():
-    count = query_one("SELECT COUNT(*) FROM workspaces")
-    if count and int(count["count"]) > 0:
+    count = query_one("SELECT COUNT(*) AS cnt FROM workspaces")
+    c_val = count.get("cnt") if count else 0
+    if c_val and int(c_val) > 0:
         return
     logging.info("Seeding workspaces...")
     rows = [
@@ -694,8 +705,9 @@ def _seed_workspaces():
 
 
 def _seed_rooms():
-    count = query_one("SELECT COUNT(*) FROM rooms")
-    if count and int(count["count"]) > 0:
+    count = query_one("SELECT COUNT(*) AS cnt FROM rooms")
+    c_val = count.get("cnt") if count else 0
+    if c_val and int(c_val) > 0:
         return
     logging.info("Seeding rooms...")
     rows = [
@@ -718,8 +730,9 @@ def _seed_rooms():
 
 
 def _seed_tenants():
-    count = query_one("SELECT COUNT(*) FROM tenants")
-    if count and int(count["count"]) > 0:
+    count = query_one("SELECT COUNT(*) AS cnt FROM tenants")
+    c_val = count.get("cnt") if count else 0
+    if c_val and int(c_val) > 0:
         return
     logging.info("Seeding tenants...")
     rows = [
@@ -738,8 +751,9 @@ def _seed_tenants():
 
 
 def _seed_staff():
-    count = query_one("SELECT COUNT(*) FROM staff")
-    if count and int(count["count"]) > 0:
+    count = query_one("SELECT COUNT(*) AS cnt FROM staff")
+    c_val = count.get("cnt") if count else 0
+    if c_val and int(c_val) > 0:
         return
     logging.info("Seeding staff...")
     rows = [
@@ -757,8 +771,9 @@ def _seed_staff():
 
 
 def _seed_complaints():
-    count = query_one("SELECT COUNT(*) FROM complaints")
-    if count and int(count["count"]) > 0:
+    count = query_one("SELECT COUNT(*) AS cnt FROM complaints")
+    c_val = count.get("cnt") if count else 0
+    if c_val and int(c_val) > 0:
         return
     logging.info("Seeding complaints...")
     rows = [
@@ -775,8 +790,9 @@ def _seed_complaints():
 
 
 def _seed_invoices():
-    count = query_one("SELECT COUNT(*) FROM invoices")
-    if count and int(count["count"]) > 0:
+    count = query_one("SELECT COUNT(*) AS cnt FROM invoices")
+    c_val = count.get("cnt") if count else 0
+    if c_val and int(c_val) > 0:
         return
     logging.info("Seeding invoices...")
     rows = [
