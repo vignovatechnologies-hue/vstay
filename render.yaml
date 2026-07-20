@@ -18,7 +18,7 @@ services:
     region: oregon
     rootDir: frontend
     buildCommand: bun install && bun run build
-    startCommand: node .output/server/index.mjs
+    startCommand: node dist/server/server.js
     envVars:
       - key: VITE_API_URL
         fromService:
