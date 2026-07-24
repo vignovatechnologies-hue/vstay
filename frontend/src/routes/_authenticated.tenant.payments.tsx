@@ -37,7 +37,7 @@ import { useApiCollection } from "@/hooks/use-api-collection";
 import { downloadText, formatShortDate } from "@/lib/actions";
 
 export const Route = createFileRoute("/_authenticated/tenant/payments")({
-  head: () => ({ meta: [{ title: "Rent & receipts · Hostly" }] }),
+  head: () => ({ meta: [{ title: "Rent & receipts · Vstay" }] }),
   component: PaymentsPage,
 });
 
@@ -99,7 +99,7 @@ function PaymentsPage() {
     params: { tenantName: user?.fullName },
     enabled: !!user?.fullName,
   });
-  const [autopay, setAutopay] = useLocalState("hostly.tenant.autopay", false);
+  const [autopay, setAutopay] = useLocalState("vstay.tenant.autopay", false);
   const [payOpen, setPayOpen] = useState(false);
   const [method, setMethod] = useState("upi");
   const [processing, setProcessing] = useState(false);
@@ -114,7 +114,7 @@ function PaymentsPage() {
   if (user.role !== "tenant") return <Navigate to="/unauthorized" />;
 
   function receiptText(r: Receipt) {
-    return `HOSTLY · RENT RECEIPT
+    return `VSTAY · RENT RECEIPT
 -------------------------
 Receipt ID : ${r.id}
 Tenant     : ${user!.fullName}

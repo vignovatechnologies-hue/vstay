@@ -6,7 +6,7 @@ import { Loader2 } from "lucide-react";
 export const Route = createFileRoute("/")({
   ssr: false,
   head: () => ({
-    meta: [{ title: "Hostly" }],
+    meta: [{ title: "Vstay" }],
   }),
   component: Index,
 });

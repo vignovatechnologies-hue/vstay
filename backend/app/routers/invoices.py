@@ -61,6 +61,26 @@ def list_invoices(workspaceId: Optional[str] = None, tenantName: Optional[str] =
             "SELECT * FROM invoices WHERE workspace_id = %s ORDER BY created_at DESC",
             (workspaceId,), fetch=True,
         )
+        if not rows:
+            sample_invoices = [
+                ("INV-1104", "Arjun Kapoor",  "204·B", "Nov 2026", "₹ 11,500", "05 Nov", "UPI",  "paid"),
+                ("INV-1105", "Vikram Singh",  "204·A", "Nov 2026", "₹ 11,500", "03 Nov", "UPI",  "paid"),
+                ("INV-1106", "Nikhil Rao",    "204·C", "Nov 2026", "₹ 11,500", "—",      "—",    "due"),
+                ("INV-1107", "Priya Sharma",  "201·A", "Nov 2026", "₹ 9,500",  "06 Nov", "Bank", "paid"),
+                ("INV-1108", "Rahul Menon",   "101",   "Nov 2026", "₹ 16,500", "—",      "—",    "overdue"),
+                ("INV-1109", "Sneha Iyer",    "301·A", "Nov 2026", "₹ 10,500", "04 Nov", "Card", "paid"),
+            ]
+            for iid, tenant, room, month, amount, date, method, status in sample_invoices:
+                full_id = f"{iid}-{uuid.uuid4().hex[:4]}"
+                query(
+                    "INSERT INTO invoices (id,workspace_id,tenant,room,month,amount,date,method,status) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s)",
+                    (full_id, workspaceId, tenant, room, month, amount, date, method, status),
+                    commit=True,
+                )
+            rows = query(
+                "SELECT * FROM invoices WHERE workspace_id = %s ORDER BY created_at DESC",
+                (workspaceId,), fetch=True,
+            )
     else:
         rows = []
     return [_fmt(r) for r in (rows or [])]

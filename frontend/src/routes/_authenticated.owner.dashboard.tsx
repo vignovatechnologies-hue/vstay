@@ -35,7 +35,7 @@ import {
 } from "recharts";
 
 export const Route = createFileRoute("/_authenticated/owner/dashboard")({
-  head: () => ({ meta: [{ title: "Owner dashboard · Hostly" }] }),
+  head: () => ({ meta: [{ title: "Owner dashboard · Vstay" }] }),
   component: OwnerDashboard,
 });
 
@@ -195,7 +195,7 @@ function OwnerDashboard() {
               <CardHeader className="pb-3">
                 <CardTitle className="text-base font-semibold flex items-center gap-2">
                   <Sparkles className="h-4 w-4 text-primary" />
-                  Hostly AI Insights (Demo)
+                  Vstay AI Insights (Demo)
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">

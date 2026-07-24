@@ -1,5 +1,5 @@
 """
-Database models (response shapes) for the Hostly API.
+Database models (response shapes) for the Vstay API.
 
 These Pydantic models describe the shape of rows returned from the
 PostgreSQL database, used to type-check _fmt() outputs and API responses.

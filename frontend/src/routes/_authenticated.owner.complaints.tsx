@@ -28,7 +28,7 @@ import { OWNER_NAV } from "@/config/navigation";
 import { KpiCard } from "@/components/layout/kpi-card";
 
 export const Route = createFileRoute("/_authenticated/owner/complaints")({
-  head: () => ({ meta: [{ title: "Complaints · Hostly" }] }),
+  head: () => ({ meta: [{ title: "Complaints · Vstay" }] }),
   component: ComplaintsPage,
 });
 

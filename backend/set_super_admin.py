@@ -12,7 +12,7 @@ def main():
         print("Error: DATABASE_URL is not set in backend/.env", file=sys.stderr)
         sys.exit(1)
         
-    parser = argparse.ArgumentParser(description="Create or update Hostly Super Admin credentials.")
+    parser = argparse.ArgumentParser(description="Create or update Vstay Super Admin credentials.")
     parser.add_argument("--email", required=True, help="Super admin email address")
     parser.add_argument("--password", required=True, help="Super admin password")
     parser.add_argument("--name", default="Super Admin", help="Super admin full name")

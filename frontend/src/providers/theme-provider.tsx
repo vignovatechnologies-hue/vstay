@@ -9,7 +9,7 @@ interface ThemeContextValue {
 }
 
 const ThemeContext = createContext<ThemeContextValue | null>(null);
-const STORAGE_KEY = "hostly.theme.v1";
+const STORAGE_KEY = "vstay.theme.v1";
 
 function readInitial(): Theme {
   if (typeof window === "undefined") return "system";

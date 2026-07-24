@@ -26,7 +26,7 @@ import { useApiCollection } from "@/hooks/use-api-collection";
 import { formatShortDate } from "@/lib/actions";
 
 export const Route = createFileRoute("/_authenticated/tenant/vehicles")({
-  head: () => ({ meta: [{ title: "Vehicles · Hostly" }] }),
+  head: () => ({ meta: [{ title: "Vehicles · Vstay" }] }),
   validateSearch: (search: Record<string, unknown>) => {
     return {
       action: (search.action as string) || undefined,

@@ -19,7 +19,7 @@ import { useAuth } from "@/providers/auth-provider";
 import { SUPER_ADMIN_NAV } from "@/config/navigation";
 
 export const Route = createFileRoute("/_authenticated/super-admin/properties")({
-  head: () => ({ meta: [{ title: "Properties · Hostly" }] }),
+  head: () => ({ meta: [{ title: "Properties · Vstay" }] }),
   component: PropertiesPage,
 });
 

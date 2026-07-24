@@ -2,8 +2,8 @@ const puppeteer = require('puppeteer');
 const path = require('path');
 const fs = require('fs');
 
-const OUTPUT_PDF = path.join(__dirname, '..', 'Hostly-Dashboard-Preview.pdf');
-const ASSETS_DIR = path.join(__dirname, '..', 'hostly-preview-assets');
+const OUTPUT_PDF = path.join(__dirname, '..', 'Vstay-Dashboard-Preview.pdf');
+const ASSETS_DIR = path.join(__dirname, '..', 'vstay-preview-assets');
 
 function getBase64Image(filename) {
   const filePath = path.join(ASSETS_DIR, filename);
@@ -126,7 +126,7 @@ async function createPdf() {
       <!-- Page 1: Cover -->
       <div class="page cover-page">
         <div class="cover-small">Dashboard Preview</div>
-        <h1 class="cover-title">Hostly</h1>
+        <h1 class="cover-title">Vstay</h1>
         <h2 class="cover-subtitle">PG, Hostel & Property Management Platform</h2>
       </div>
 
@@ -178,7 +178,7 @@ async function createPdf() {
       <div class="page content-page">
         <div class="header">
           <h1>Simple, Transparent Pricing</h1>
-          <h2>Hostly platform subscription options</h2>
+          <h2>Vstay platform subscription options</h2>
         </div>
         <div class="image-container">
           <img class="dashboard-img" src="${pricingImg}" alt="Pricing Page" />
@@ -187,7 +187,7 @@ async function createPdf() {
 
       <!-- Final Page -->
       <div class="page cover-page">
-        <h1 class="cover-title">Hostly</h1>
+        <h1 class="cover-title">Vstay</h1>
         <h2 class="cover-subtitle">Smart Property Operations in One Platform</h2>
       </div>
     </body>

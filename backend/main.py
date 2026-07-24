@@ -1,5 +1,5 @@
 """
-Hostly FastAPI backend entry point.
+Vstay FastAPI backend entry point.
 """
 import logging
 from datetime import datetime, timezone
@@ -29,8 +29,8 @@ from app.routers import (
 logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
 
 app = FastAPI(
-    title="Hostly API",
-    description="Backend for Hostly PG Management Platform",
+    title="Vstay API",
+    description="Backend for Vstay PG Management Platform",
     version="2.0.0",
 )
 
@@ -92,7 +92,7 @@ def shutdown():
 
 @app.get("/health")
 def health():
-    return {"status": "ok", "service": "hostly-backend"}
+    return {"status": "ok", "service": "vstay-backend"}
 
 
 @app.get("/demo/status")
@@ -118,7 +118,7 @@ def manual_demo_reset(secret: str):
     Requires the DEMO_RESET_SECRET query param to match the env variable.
     """
     import os
-    expected = os.getenv("DEMO_RESET_SECRET", "hostly-demo-reset-2026")
+    expected = os.getenv("DEMO_RESET_SECRET", "vstay-demo-reset-2026")
     if secret != expected:
         raise HTTPException(status_code=403, detail="Invalid secret.")
     reset_demo_data()

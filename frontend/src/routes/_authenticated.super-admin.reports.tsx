@@ -10,7 +10,7 @@ import { useAuth } from "@/providers/auth-provider";
 import { SUPER_ADMIN_NAV } from "@/config/navigation";
 
 export const Route = createFileRoute("/_authenticated/super-admin/reports")({
-  head: () => ({ meta: [{ title: "Reports · Hostly" }] }),
+  head: () => ({ meta: [{ title: "Reports · Vstay" }] }),
   component: ReportsPage,
 });
 

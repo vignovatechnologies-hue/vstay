@@ -18,14 +18,14 @@ import { useAuth } from "@/providers/auth-provider";
 import { SUPER_ADMIN_NAV } from "@/config/navigation";
 
 export const Route = createFileRoute("/_authenticated/super-admin/audit")({
-  head: () => ({ meta: [{ title: "Audit logs · Hostly" }] }),
+  head: () => ({ meta: [{ title: "Audit logs · Vstay" }] }),
   component: AuditPage,
 });
 
 const LOGS = [
   {
     t: "12:04 PM",
-    actor: "aanya@hostly.app",
+    actor: "aanya@vstay.app",
     role: "Super Admin",
     action: "workspace.suspended",
     target: "Green Tree PG",
@@ -55,7 +55,7 @@ const LOGS = [
     actor: "meera@lotusladies.in",
     role: "Owner",
     action: "staff.invited",
-    target: "pooja@hostly.app",
+    target: "pooja@vstay.app",
     ip: "117.99.44.10",
     sev: "info" as const,
   },
@@ -70,10 +70,10 @@ const LOGS = [
   },
   {
     t: "Yesterday 08:14 PM",
-    actor: "aanya@hostly.app",
+    actor: "aanya@vstay.app",
     role: "Super Admin",
     action: "role.granted",
-    target: "vikram@hostly.app · Support",
+    target: "vikram@vstay.app · Support",
     ip: "103.24.11.8",
     sev: "warn" as const,
   },

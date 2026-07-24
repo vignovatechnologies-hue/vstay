@@ -3,7 +3,7 @@ import type { User } from "@/types/auth";
 export const SEED_USERS: User[] = [
   {
     id: "u_owner_multi",
-    email: "owner@hostly.app",
+    email: "owner@vstay.app",
     fullName: "Rohan Verma",
     phone: "+91 98200 12345",
     role: "owner",
@@ -12,7 +12,7 @@ export const SEED_USERS: User[] = [
   },
   {
     id: "u_owner_single",
-    email: "single@hostly.app",
+    email: "single@vstay.app",
     fullName: "Kavya Iyer",
     phone: "+91 98765 22110",
     role: "owner",
@@ -21,7 +21,7 @@ export const SEED_USERS: User[] = [
   },
   {
     id: "u_manager_1",
-    email: "manager@hostly.app",
+    email: "manager@vstay.app",
     fullName: "Devang Shah",
     role: "manager",
     workspaceIds: ["pg_greenhaven"],
@@ -29,7 +29,7 @@ export const SEED_USERS: User[] = [
   },
   {
     id: "u_reception_1",
-    email: "reception@hostly.app",
+    email: "reception@vstay.app",
     fullName: "Pooja Nair",
     role: "reception",
     workspaceIds: ["pg_greenhaven"],
@@ -37,7 +37,7 @@ export const SEED_USERS: User[] = [
   },
   {
     id: "u_tenant_1",
-    email: "tenant@hostly.app",
+    email: "tenant@vstay.app",
     fullName: "Arjun Kapoor",
     phone: "+91 90000 11122",
     role: "tenant",

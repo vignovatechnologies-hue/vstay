@@ -40,7 +40,7 @@ import { useApiCollection } from "@/hooks/use-api-collection";
 import { AC_OPTIONS, useRoomConfig, type AcOption } from "@/lib/room-config";
 
 export const Route = createFileRoute("/_authenticated/staff/rooms")({
-  head: () => ({ meta: [{ title: "Rooms & Beds · Hostly" }] }),
+  head: () => ({ meta: [{ title: "Rooms & Beds · Vstay" }] }),
   component: StaffRoomsPage,
 });
 

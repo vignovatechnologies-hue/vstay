@@ -22,7 +22,7 @@ import { SUPER_ADMIN_NAV } from "@/config/navigation";
 import { useLocalState } from "@/lib/local-store";
 
 export const Route = createFileRoute("/_authenticated/super-admin/settings")({
-  head: () => ({ meta: [{ title: "Platform settings · Hostly" }] }),
+  head: () => ({ meta: [{ title: "Platform settings · Vstay" }] }),
   component: PlatformSettings,
 });
 
@@ -33,11 +33,11 @@ type S = {
 };
 const DEFAULTS: S = {
   brand: {
-    name: "Hostly",
-    support: "support@hostly.app",
+    name: "Vstay",
+    support: "support@vstay.app",
     currency: "INR (₹)",
     tz: "Asia/Kolkata",
-    marketing: "https://hostly.app",
+    marketing: "https://vstay.app",
   },
   security: { admin2fa: true, owner2fa: false, ipAllow: false, sessionExpiry: true },
   notif: { signups: true, failed: true, incidents: true, digest: true },
@@ -45,7 +45,7 @@ const DEFAULTS: S = {
 
 function PlatformSettings() {
   const { user } = useAuth();
-  const [s, setS] = useLocalState<S>("hostly.sa.settings", DEFAULTS);
+  const [s, setS] = useLocalState<S>("vstay.sa.settings", DEFAULTS);
   const [draft, setDraft] = useState(s.brand);
   const [keysOpen, setKeysOpen] = useState(false);
   const [pwOpen, setPwOpen] = useState(false);
@@ -69,7 +69,7 @@ function PlatformSettings() {
   return (
     <DashboardShell
       title="Platform settings"
-      subtitle="Global configuration for Hostly"
+      subtitle="Global configuration for Vstay"
       navGroups={SUPER_ADMIN_NAV}
     >
       <div className="grid gap-4 lg:grid-cols-3">
@@ -232,7 +232,7 @@ function PlatformSettings() {
             <DialogTitle>API keys</DialogTitle>
           </DialogHeader>
           <div className="space-y-3 text-sm">
-            {["pk_live_hostly_84af…c1e2", "sk_live_hostly_2b91…f60a"].map((k) => (
+            {["pk_live_vstay_84af…c1e2", "sk_live_vstay_2b91…f60a"].map((k) => (
               <div
                 key={k}
                 className="flex items-center justify-between rounded-md border border-border-default p-3 font-mono text-xs"

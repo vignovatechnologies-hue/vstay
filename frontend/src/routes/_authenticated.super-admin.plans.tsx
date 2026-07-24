@@ -15,7 +15,7 @@ import { SUPER_ADMIN_NAV } from "@/config/navigation";
 import { usePlansConfig, DEFAULT_PLANS, type Plan } from "@/lib/plans-config";
 
 export const Route = createFileRoute("/_authenticated/super-admin/plans")({
-  head: () => ({ meta: [{ title: "Plans & Pricing · Hostly" }] }),
+  head: () => ({ meta: [{ title: "Plans & Pricing · Vstay" }] }),
   component: PlansPage,
 });
 

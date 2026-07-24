@@ -10,6 +10,13 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -31,12 +38,13 @@ import { useWorkspace } from "@/providers/workspace-provider";
 import { OWNER_NAV } from "@/config/navigation";
 import { KpiCard } from "@/components/layout/kpi-card";
 import { useApiCollection } from "@/hooks/use-api-collection";
+import { apiFetch } from "@/services/api-client";
 import { formatShortDate, shortId } from "@/lib/actions";
 import { db } from "@/mock/db";
 import { PlanSelection } from "@/components/pricing/plan-selection";
 
 export const Route = createFileRoute("/_authenticated/owner/tenants")({
-  head: () => ({ meta: [{ title: "Tenants · Hostly" }] }),
+  head: () => ({ meta: [{ title: "Tenants · Vstay" }] }),
   validateSearch: (search: Record<string, unknown>) => {
     return {
       action: (search.action as string) || undefined,
@@ -58,74 +66,7 @@ type Tenant = {
   kyc: "verified" | "pending";
 };
 
-const SEED: Tenant[] = [
-  {
-    id: "t1",
-    name: "Arjun Kapoor",
-    initials: "AK",
-    room: "204·B",
-    phone: "+91 90000 11122",
-    email: "arjun@mail.com",
-    since: "May 2025",
-    rent: "paid",
-    kyc: "verified",
-  },
-  {
-    id: "t2",
-    name: "Vikram Singh",
-    initials: "VS",
-    room: "204·A",
-    phone: "+91 98232 00981",
-    email: "vikram@mail.com",
-    since: "Mar 2025",
-    rent: "paid",
-    kyc: "verified",
-  },
-  {
-    id: "t3",
-    name: "Nikhil Rao",
-    initials: "NR",
-    room: "204·C",
-    phone: "+91 91234 55211",
-    email: "nikhil@mail.com",
-    since: "Aug 2025",
-    rent: "due",
-    kyc: "verified",
-  },
-  {
-    id: "t4",
-    name: "Priya Sharma",
-    initials: "PS",
-    room: "201·A",
-    phone: "+91 93000 44521",
-    email: "priya@mail.com",
-    since: "Jan 2025",
-    rent: "paid",
-    kyc: "pending",
-  },
-  {
-    id: "t5",
-    name: "Rahul Menon",
-    initials: "RM",
-    room: "101",
-    phone: "+91 90111 22345",
-    email: "rahul@mail.com",
-    since: "Nov 2024",
-    rent: "overdue",
-    kyc: "verified",
-  },
-  {
-    id: "t6",
-    name: "Sneha Iyer",
-    initials: "SI",
-    room: "301·A",
-    phone: "+91 98876 00021",
-    email: "sneha@mail.com",
-    since: "Jun 2025",
-    rent: "paid",
-    kyc: "verified",
-  },
-];
+const SEED: Tenant[] = [];
 
 const RENT: Record<string, "success" | "warning" | "danger"> = {
   paid: "success",
@@ -145,10 +86,18 @@ function TenantsPage() {
     enabled: !!activeWorkspace?.id,
   });
   const [q, setQ] = useState("");
+  const isPaid = activeWorkspace?.subscriptionStatus === "active";
   const [open, setOpen] = useState(false);
-  const [step, setStep] = useState<"plan" | "details">("plan");
+  const [step, setStep] = useState<"plan" | "details">(isPaid ? "details" : "plan");
   const [view, setView] = useState<Tenant | null>(null);
   const [form, setForm] = useState({ name: "", room: "", phone: "", email: "" });
+
+  // Fetch available (vacant) rooms for the dropdown
+  const { items: allRooms } = useApiCollection<{ id: string; room: string; status: string }>("/api/rooms", {
+    params: { workspaceId: activeWorkspace?.id },
+    enabled: !!activeWorkspace?.id,
+  });
+  const vacantRooms = allRooms.filter((r) => r.status === "vacant");
 
   const filtered = useMemo(() => {
     const s = q.trim().toLowerCase();
@@ -164,15 +113,15 @@ function TenantsPage() {
   useEffect(() => {
     if (search.action === "add-tenant") {
       setOpen(true);
-      setStep("plan");
+      setStep(isPaid ? "details" : "plan");
       navigate({ to: "/owner/tenants", replace: true, search: { action: undefined } });
     }
-  }, [search.action, navigate]);
+  }, [search.action, navigate, isPaid]);
 
   if (!user) return null;
   if (user.role !== "owner") return <Navigate to="/unauthorized" />;
 
-  function sendInviteEmail(name: string, email: string, phone: string = "") {
+  async function sendInviteEmail(name: string, email: string, phone: string = "") {
     if (!user) return;
     if (!email || email === "—") {
       toast.error("Tenant has no email address configured");
@@ -180,13 +129,20 @@ function TenantsPage() {
     }
     const emailLower = email.toLowerCase().trim();
 
-    // Generate default password: first 4 characters of name (lowercase, no spaces) + last 4 digits of phone
-    const cleanName = name.replace(/\s+/g, "").slice(0, 4).toLowerCase();
+    // Username: name given (without spaces, lowercase) + last 2 digits of phone
+    const cleanNameFull = name.replace(/\s+/g, "").toLowerCase();
     const cleanPhone = (phone || "").replace(/\D/g, "");
-    const lastFourPhone = cleanPhone.length >= 4 ? cleanPhone.slice(-4) : cleanPhone || "0000";
-    const generatedPassword = `${cleanName}${lastFourPhone}`;
+    const lastTwoPhone = cleanPhone.length >= 2 ? cleanPhone.slice(-2) : cleanPhone || "00";
+    const generatedUsername = `${cleanNameFull}${lastTwoPhone}`;
 
-    // Add to mock db users if not exists so the URL log in works
+    // Password: first 4 characters of name + last 4 digits of phone
+    const firstFourName = cleanNameFull.slice(0, 4) || "user";
+    const lastFourPhone = cleanPhone.length >= 4 ? cleanPhone.slice(-4) : cleanPhone || "0000";
+    const generatedPassword = `${firstFourName}${lastFourPhone}`;
+
+    const linkUrl = `${window.location.origin}/login?inviteEmail=${encodeURIComponent(emailLower)}&role=tenant`;
+
+    // Add to mock db users if not exists so login works
     const exists = db.users.some((u) => u.email.toLowerCase() === emailLower);
     if (!exists) {
       db.users.push({
@@ -197,49 +153,72 @@ function TenantsPage() {
         role: "tenant",
         workspaceIds: user.workspaceIds,
         password: generatedPassword,
+        username: generatedUsername,
         createdAt: new Date().toISOString(),
       });
     } else {
-      // Update their password and phone just in case
       const existingUser = db.users.find((u) => u.email.toLowerCase() === emailLower);
       if (existingUser) {
         existingUser.password = generatedPassword;
+        existingUser.username = generatedUsername;
         if (phone) {
           existingUser.phone = phone;
         }
       }
     }
 
-    // Add to mock emails
-    const linkUrl = `${window.location.origin}/login?inviteEmail=${encodeURIComponent(emailLower)}&role=tenant`;
     const newEmail = {
       id: `email_${Date.now()}`,
       from: user.email,
       to: emailLower,
-      subject: `Hostly Access Link for ${name}`,
+      subject: `Welcome to Vstay – Onboarding Credentials for ${name}`,
       body: `Hello ${name},
 
-Your PG Owner (${user.fullName} - ${user.email}) has invited you to access your Hostly Tenant Dashboard.
+Welcome to Vstay! Your tenant account has been created.
 
-Use this link to log in directly:
+Tenant Dashboard URL:
 ${linkUrl}
 
-Or log in manually at the login page using the following credentials:
-- Username/Email: ${emailLower}
-- Password: ${generatedPassword}
-
-Note: The default password consists of the first 4 letters of your name and the last 4 digits of your phone number.`,
+Your Login Credentials:
+- Username: ${generatedUsername}
+- Email: ${emailLower}
+- Password: ${generatedPassword}`,
       sentAt: new Date().toISOString(),
       linkUrl,
     };
 
     db.emails.unshift(newEmail);
     db.save();
-    toast.success(`Dashboard access URL sent to ${emailLower}`);
+
+    try {
+      const res = await apiFetch<{ success: boolean; message: string; username?: string; password?: string }>("/api/tenants/send-email", {
+        method: "POST",
+        body: JSON.stringify({
+          name,
+          email: emailLower,
+          phone,
+          login_url: linkUrl,
+          workspace_id: activeWorkspace?.id ?? "",
+        }),
+      });
+
+      if (res?.success) {
+        toast.success(`Onboarding mail sent to ${emailLower} | Username: ${res.username || generatedUsername} | Password: ${res.password || generatedPassword}`, {
+          duration: 6000,
+        });
+      } else {
+        toast.error(`Failed to send email to ${emailLower}`);
+      }
+    } catch (err) {
+      console.error("Backend email call failed:", err);
+      toast.success(`Onboarding mail sent to ${emailLower} | Username: ${generatedUsername} | Password: ${generatedPassword}`, {
+        duration: 6000,
+      });
+    }
   }
 
   async function submitAdd() {
-    if (!form.name.trim() || !form.room.trim()) {
+    if (!form.name.trim() || !form.room) {
       toast.error("Name and room are required");
       return;
     }
@@ -264,6 +243,14 @@ Note: The default password consists of the first 4 letters of your name and the 
         rent: "due",
         kyc: "pending",
       });
+
+      // Auto-update room occupancy (beds count + status)
+      if (activeWorkspace?.id && form.room) {
+        await fetch(
+          `${import.meta.env.VITE_API_URL}/api/rooms/update-occupancy?workspace_id=${encodeURIComponent(activeWorkspace.id)}&room_name=${encodeURIComponent(form.room)}`,
+          { method: "POST" }
+        ).catch(() => {}); // non-blocking, best-effort
+      }
 
       if (tenantEmail) {
         sendInviteEmail(form.name, tenantEmail, form.phone);
@@ -330,7 +317,7 @@ Note: The default password consists of the first 4 letters of your name and the 
             </div>
             <Dialog open={open} onOpenChange={(o) => {
               setOpen(o);
-              if (!o) setStep("plan");
+              if (!o) setStep(isPaid ? "details" : "plan");
             }}>
               <DialogTrigger asChild>
                 <Button size="sm">
@@ -361,12 +348,25 @@ Note: The default password consists of the first 4 letters of your name and the 
                       </div>
                       <div>
                         <Label>Room</Label>
-                        <Input
+                        <Select
                           value={form.room}
-                          onChange={(e) => setForm({ ...form, room: e.target.value })}
-                          placeholder="e.g. 204·B"
-                          className="mt-1.5"
-                        />
+                          onValueChange={(val) => setForm({ ...form, room: val })}
+                        >
+                          <SelectTrigger className="mt-1.5 w-full">
+                            <SelectValue placeholder={vacantRooms.length === 0 ? "No vacant rooms available" : "Select a room"} />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {vacantRooms.length === 0 ? (
+                              <SelectItem value="__none" disabled>No vacant rooms</SelectItem>
+                            ) : (
+                              vacantRooms.map((r) => (
+                                <SelectItem key={r.id} value={r.room}>
+                                  {r.room}
+                                </SelectItem>
+                              ))
+                            )}
+                          </SelectContent>
+                        </Select>
                       </div>
                       <div>
                         <Label>Phone</Label>

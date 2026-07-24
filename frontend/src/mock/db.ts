@@ -35,9 +35,9 @@ function writeToStorage<T>(key: string, value: T): void {
 }
 
 // Initial seed loading and saving
-const initialUsers = readFromStorage<User[]>("hostly.mockdb.users", SEED_USERS);
-const initialWorkspaces = readFromStorage<Workspace[]>("hostly.mockdb.workspaces", SEED_WORKSPACES);
-const initialEmails = readFromStorage<MockEmail[]>("hostly.mockdb.emails", []);
+const initialUsers = readFromStorage<User[]>("vstay.mockdb.users", SEED_USERS);
+const initialWorkspaces = readFromStorage<Workspace[]>("vstay.mockdb.workspaces", SEED_WORKSPACES);
+const initialEmails = readFromStorage<MockEmail[]>("vstay.mockdb.emails", []);
 
 export const db = {
   users: initialUsers,
@@ -45,9 +45,9 @@ export const db = {
   emails: initialEmails,
 
   save(): void {
-    writeToStorage("hostly.mockdb.users", this.users);
-    writeToStorage("hostly.mockdb.workspaces", this.workspaces);
-    writeToStorage("hostly.mockdb.emails", this.emails);
+    writeToStorage("vstay.mockdb.users", this.users);
+    writeToStorage("vstay.mockdb.workspaces", this.workspaces);
+    writeToStorage("vstay.mockdb.emails", this.emails);
   },
 };
 

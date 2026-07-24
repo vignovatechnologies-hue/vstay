@@ -24,7 +24,7 @@ import { useRoomConfig, DEFAULT_FLOORS, DEFAULT_ROOM_TYPES } from "@/lib/room-co
 import { Badge } from "@/components/ui/badge";
 
 export const Route = createFileRoute("/_authenticated/owner/settings")({
-  head: () => ({ meta: [{ title: "Settings · Hostly" }] }),
+  head: () => ({ meta: [{ title: "Settings · Vstay" }] }),
   component: SettingsPage,
 });
 
@@ -38,7 +38,7 @@ const DEFAULTS: OwnerSettings = {
     name: "Lotus Ladies PG",
     gst: "27AABCU9603R1ZM",
     phone: "+91 98765 22110",
-    email: "single@hostly.app",
+    email: "single@vstay.app",
     address: "21, Linking Road, Bandra West, Mumbai 400050",
   },
   notif: { rent: true, complaint: true, movement: true, digest: false },
@@ -48,7 +48,7 @@ const DEFAULTS: OwnerSettings = {
 function SettingsPage() {
   const { user } = useAuth();
   const { activeWorkspace } = useWorkspace();
-  const [settings, setSettings] = useLocalState<OwnerSettings>("hostly.owner.settings", DEFAULTS);
+  const [settings, setSettings] = useLocalState<OwnerSettings>("vstay.owner.settings", DEFAULTS);
   const [roomConfig, setRoomConfig] = useRoomConfig();
   const [draft, setDraft] = useState(settings.property);
   const [pwOpen, setPwOpen] = useState(false);

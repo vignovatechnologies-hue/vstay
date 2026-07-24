@@ -21,7 +21,7 @@ import { useApiCollection } from "@/hooks/use-api-collection";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/tenant/laundry")({
-  head: () => ({ meta: [{ title: "Laundry booking · Hostly" }] }),
+  head: () => ({ meta: [{ title: "Laundry booking · Vstay" }] }),
   component: LaundryPage,
 });
 

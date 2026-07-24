@@ -68,3 +68,39 @@ def update_room(room_id: str, body: dict):
 @router.delete("/{room_id}", status_code=204)
 def delete_room(room_id: str):
     query("DELETE FROM rooms WHERE id = %s", (room_id,), commit=True)
+
+
+@router.post("/update-occupancy")
+def update_room_occupancy(workspace_id: str, room_name: str):
+    """Recalculate beds occupancy and status for a room based on actual tenant count."""
+    # Find the room
+    room = query_one(
+        "SELECT * FROM rooms WHERE workspace_id = %s AND room = %s",
+        (workspace_id, room_name),
+    )
+    if not room:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Room not found")
+
+    # Count tenants currently assigned to this room
+    tenant_count_row = query_one(
+        "SELECT COUNT(*) AS cnt FROM tenants WHERE workspace_id = %s AND room = %s",
+        (workspace_id, room_name),
+    )
+    occupied = int(tenant_count_row["cnt"]) if tenant_count_row else 0
+
+    # Parse total capacity from stored beds string e.g. "0/1" -> 1, or just "2" -> 2
+    beds_raw = room.get("beds") or "0/1"
+    if "/" in str(beds_raw):
+        total = int(str(beds_raw).split("/")[1])
+    else:
+        total = int(beds_raw) if str(beds_raw).isdigit() else 1
+
+    new_beds = f"{occupied}/{total}"
+    new_status = "occupied" if occupied >= total else "vacant"
+
+    query(
+        "UPDATE rooms SET beds = %s, status = %s WHERE id = %s",
+        (new_beds, new_status, room["id"]),
+        commit=True,
+    )
+    return _fmt(query_one("SELECT * FROM rooms WHERE id = %s", (room["id"],)))

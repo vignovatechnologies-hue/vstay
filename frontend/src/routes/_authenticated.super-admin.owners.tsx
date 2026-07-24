@@ -32,7 +32,7 @@ import { apiFetch } from "@/services/api-client";
 import { db } from "@/mock/db";
 
 export const Route = createFileRoute("/_authenticated/super-admin/owners")({
-  head: () => ({ meta: [{ title: "Owners · Hostly" }] }),
+  head: () => ({ meta: [{ title: "Owners · Vstay" }] }),
   component: OwnersPage,
 });
 
@@ -190,7 +190,7 @@ function OwnersPage() {
   return (
     <DashboardShell
       title="Owners"
-      subtitle="Every PG operator on the Hostly platform"
+      subtitle="Every PG operator on the Vstay platform"
       navGroups={SUPER_ADMIN_NAV}
     >
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">

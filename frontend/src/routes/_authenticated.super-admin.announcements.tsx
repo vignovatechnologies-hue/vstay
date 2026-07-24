@@ -15,7 +15,7 @@ import { SUPER_ADMIN_NAV } from "@/config/navigation";
 import { useApiCollection } from "@/hooks/use-api-collection";
 
 export const Route = createFileRoute("/_authenticated/super-admin/announcements")({
-  head: () => ({ meta: [{ title: "Announcements · Hostly" }] }),
+  head: () => ({ meta: [{ title: "Announcements · Vstay" }] }),
   component: AnnouncementsPage,
 });
 

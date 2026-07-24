@@ -29,7 +29,7 @@ import { useApiCollection } from "@/hooks/use-api-collection";
 import { useWorkspace } from "@/providers/workspace-provider";
 
 export const Route = createFileRoute("/_authenticated/staff/complaints")({
-  head: () => ({ meta: [{ title: "Complaints · Hostly" }] }),
+  head: () => ({ meta: [{ title: "Complaints · Vstay" }] }),
   component: StaffComplaintsPage,
 });
 

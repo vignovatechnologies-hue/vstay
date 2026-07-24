@@ -9,7 +9,7 @@ export default defineConfig(({ mode }) => ({
     allowedHosts: true,
   },
   build: {
-    outDir: mode === "preview" ? "hostly-preview" : "dist",
+    outDir: mode === "preview" ? "vstay-preview" : "dist",
   },
   plugins: [
     tanstackStart({

@@ -30,7 +30,7 @@ import { useApiCollection } from "@/hooks/use-api-collection";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/tenant/complaints")({
-  head: () => ({ meta: [{ title: "Complaints · Hostly" }] }),
+  head: () => ({ meta: [{ title: "Complaints · Vstay" }] }),
   component: ComplaintsPage,
 });
 

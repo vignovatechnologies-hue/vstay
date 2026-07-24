@@ -7,7 +7,7 @@ import { STAFF_NAV } from "@/config/navigation";
 import { isStaffRole } from "@/config/roles";
 
 export const Route = createFileRoute("/_authenticated/staff/maintenance")({
-  head: () => ({ meta: [{ title: "Maintenance · Hostly" }] }),
+  head: () => ({ meta: [{ title: "Maintenance · Vstay" }] }),
   component: StaffMaintenancePage,
 });
 

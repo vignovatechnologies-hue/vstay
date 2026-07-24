@@ -76,20 +76,20 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Hostly · Multi-tenant PG management" },
+      { title: "Vstay · Multi-tenant PG management" },
       {
         name: "description",
         content: "Operate every PG, every bed, every rupee — from one place.",
       },
-      { name: "author", content: "Hostly" },
-      { property: "og:title", content: "Hostly · Multi-tenant PG management" },
+      { name: "author", content: "Vstay" },
+      { property: "og:title", content: "Vstay · Multi-tenant PG management" },
       {
         property: "og:description",
         content: "Multi-tenant PG management for owners, staff and tenants.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
-      { name: "twitter:site", content: "@hostly" },
+      { name: "twitter:site", content: "@vstay" },
     ],
     links: [
       {
@@ -113,7 +113,7 @@ function RootShell({ children }: { children: ReactNode }) {
           dangerouslySetInnerHTML={{
             __html: `
               try {
-                var key = "hostly.theme.v1";
+                var key = "vstay.theme.v1";
                 var stored = localStorage.getItem(key) || "system";
                 var resolved = stored;
                 if (stored === "system") {

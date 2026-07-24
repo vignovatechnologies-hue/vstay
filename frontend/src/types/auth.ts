@@ -21,6 +21,7 @@ export interface User {
   workspaceIds: string[];
   avatarUrl?: string;
   password?: string;
+  username?: string;
   createdAt: string;
 }
 

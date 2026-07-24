@@ -37,7 +37,7 @@ import {
 } from "recharts";
 
 export const Route = createFileRoute("/_authenticated/super-admin/dashboard")({
-  head: () => ({ meta: [{ title: "Platform overview · Hostly" }] }),
+  head: () => ({ meta: [{ title: "Platform overview · Vstay" }] }),
   component: SuperAdminDashboard,
 });
 

@@ -19,7 +19,7 @@ import { useAuth } from "@/providers/auth-provider";
 import { SUPER_ADMIN_NAV } from "@/config/navigation";
 
 export const Route = createFileRoute("/_authenticated/super-admin/revenue")({
-  head: () => ({ meta: [{ title: "Revenue · Hostly" }] }),
+  head: () => ({ meta: [{ title: "Revenue · Vstay" }] }),
   component: RevenuePage,
 });
 

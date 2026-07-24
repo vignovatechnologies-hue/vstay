@@ -13,7 +13,7 @@ export type Plan = {
 
 export type PlansConfig = { plans: Plan[] };
 
-const KEY = "hostly.plans.config";
+const KEY = "vstay.plans.config";
 
 export const DEFAULT_PLANS: PlansConfig = {
   plans: [

@@ -26,7 +26,7 @@ const monthlyExpensesData = [
 ];
 
 export const Route = createFileRoute("/_authenticated/tenant/dashboard")({
-  head: () => ({ meta: [{ title: "My stay · Hostly" }] }),
+  head: () => ({ meta: [{ title: "My stay · Vstay" }] }),
   component: TenantDashboard,
 });
 

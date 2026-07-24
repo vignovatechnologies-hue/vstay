@@ -12,7 +12,7 @@ import { useApiCollection } from "@/hooks/use-api-collection";
 import { pickFile, downloadText } from "@/lib/actions";
 
 export const Route = createFileRoute("/_authenticated/tenant/documents")({
-  head: () => ({ meta: [{ title: "Documents · Hostly" }] }),
+  head: () => ({ meta: [{ title: "Documents · Vstay" }] }),
   component: DocumentsPage,
 });
 

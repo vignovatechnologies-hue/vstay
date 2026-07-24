@@ -1,5 +1,5 @@
 """
-Database connection pool and query helpers for the Hostly backend.
+Database connection pool and query helpers for the Vstay backend.
 """
 import os
 import logging
@@ -63,11 +63,11 @@ def cursor(commit: bool = False):
 DEMO_WORKSPACE_IDS = ["pg_greenhaven", "pg_skyline", "pg_meridian", "pg_lotus"]
 DEMO_USER_IDS = ["u_owner_multi", "u_owner_single", "u_manager_1", "u_reception_1", "u_tenant_1"]
 DEMO_EMAILS = [
-    "owner@hostly.app",
-    "single@hostly.app",
-    "manager@hostly.app",
-    "reception@hostly.app",
-    "tenant@hostly.app"
+    "owner@vstay.app",
+    "single@vstay.app",
+    "manager@vstay.app",
+    "reception@vstay.app",
+    "tenant@vstay.app"
 ]
 
 DEMO_DB_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "demo_temp.db")
@@ -150,9 +150,14 @@ def init_sqlite_db():
             phone TEXT,
             role TEXT NOT NULL,
             workspace_ids TEXT DEFAULT '[]',
+            username TEXT,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );
     """)
+    try:
+        cur.execute("ALTER TABLE users ADD COLUMN username TEXT;")
+    except Exception:
+        pass
     cur.execute("""
         CREATE TABLE IF NOT EXISTS workspaces (
             id TEXT PRIMARY KEY,
@@ -362,6 +367,14 @@ def query_sqlite(sql: str, params=None, *, fetch: bool = False):
             return results
         conn.commit()
         return None
+    except sqlite3.IntegrityError as e:
+        conn.rollback()
+        # Ignore duplicate seed data on restarts
+        if "UNIQUE constraint failed" in str(e) or "unique" in str(e).lower():
+            logging.debug(f"SQLite skipped duplicate row: {e} | Query: {sql}")
+        else:
+            logging.error(f"SQLite integrity error: {e} | Query: {sql}")
+            raise
     except Exception as e:
         conn.rollback()
         logging.error(f"SQLite execution failed: {e} | Query: {sql}")
@@ -409,17 +422,16 @@ def init_db():
     except Exception as e:
         logging.error(f"Failed to initialize SQLite cache: {e}")
 
-    # Seed demo data (for both Postgres and SQLite modes)
-    _seed_users()
-    _seed_workspaces()
-    _seed_rooms()
-    _seed_tenants()
-    _seed_staff()
-    _seed_complaints()
-    _seed_invoices()
-
     if pool is None:
         logging.info("Running in SQLite mode; skipping PostgreSQL schema creation.")
+        # Seed demo data into SQLite
+        _seed_users()
+        _seed_workspaces()
+        _seed_rooms()
+        _seed_tenants()
+        _seed_staff()
+        _seed_complaints()
+        _seed_invoices()
         return
 
 
@@ -436,6 +448,7 @@ def init_db():
             created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );
     """, commit=True)
+    query("ALTER TABLE users ADD COLUMN IF NOT EXISTS username VARCHAR(255);", commit=True)
 
     query("""
         CREATE TABLE IF NOT EXISTS workspaces (
@@ -670,11 +683,11 @@ def _seed_users():
         return
     logging.info("Seeding users...")
     rows = [
-        ("u_owner_multi",  "owner@hostly.app",      "Rohan Verma",  "+91 98200 12345",    "owner",       ["pg_greenhaven", "pg_skyline", "pg_meridian"]),
-        ("u_owner_single", "single@hostly.app",     "Kavya Iyer",   "+91 98765 22110",    "owner",       ["pg_lotus"]),
-        ("u_manager_1",    "manager@hostly.app",    "Devang Shah",  "",                   "manager",     ["pg_greenhaven"]),
-        ("u_reception_1",  "reception@hostly.app",  "Pooja Nair",   "",                   "reception",   ["pg_greenhaven"]),
-        ("u_tenant_1",     "tenant@hostly.app",     "Arjun Kapoor", "+91 90000 11122",    "tenant",      ["pg_greenhaven"]),
+        ("u_owner_multi",  "owner@vstay.app",      "Rohan Verma",  "+91 98200 12345",    "owner",       ["pg_greenhaven", "pg_skyline", "pg_meridian"]),
+        ("u_owner_single", "single@vstay.app",     "Kavya Iyer",   "+91 98765 22110",    "owner",       ["pg_lotus"]),
+        ("u_manager_1",    "manager@vstay.app",    "Devang Shah",  "",                   "manager",     ["pg_greenhaven"]),
+        ("u_reception_1",  "reception@vstay.app",  "Pooja Nair",   "",                   "reception",   ["pg_greenhaven"]),
+        ("u_tenant_1",     "tenant@vstay.app",     "Arjun Kapoor", "+91 90000 11122",    "tenant",      ["pg_greenhaven"]),
     ]
     for uid, email, name, phone, role, ws_ids in rows:
         query(
@@ -755,11 +768,11 @@ def _seed_staff():
         return
     logging.info("Seeding staff...")
     rows = [
-        ("s-1", "pg_greenhaven", "Devang Shah",  "DS", "Manager",      "+91 98000 00001", "devang@hostly.app",   "Full day", "active"),
-        ("s-2", "pg_greenhaven", "Pooja Nair",   "PN", "Reception",    "+91 98000 00002", "pooja@hostly.app",    "Day",      "active"),
-        ("s-3", "pg_greenhaven", "Suresh Kumar", "SK", "Housekeeping", "+91 98000 00003", "suresh@hostly.app",   "Morning",  "active"),
-        ("s-4", "pg_greenhaven", "Ravi Menon",   "RM", "Security",     "+91 98000 00004", "ravi@hostly.app",     "Night",    "active"),
-        ("s-5", "pg_greenhaven", "Arun Patel",   "AP", "Cook",         "+91 98000 00005", "arun@hostly.app",     "Morning",  "leave"),
+        ("s-1", "pg_greenhaven", "Devang Shah",  "DS", "Manager",      "+91 98000 00001", "devang@vstay.app",   "Full day", "active"),
+        ("s-2", "pg_greenhaven", "Pooja Nair",   "PN", "Reception",    "+91 98000 00002", "pooja@vstay.app",    "Day",      "active"),
+        ("s-3", "pg_greenhaven", "Suresh Kumar", "SK", "Housekeeping", "+91 98000 00003", "suresh@vstay.app",   "Morning",  "active"),
+        ("s-4", "pg_greenhaven", "Ravi Menon",   "RM", "Security",     "+91 98000 00004", "ravi@vstay.app",     "Night",    "active"),
+        ("s-5", "pg_greenhaven", "Arun Patel",   "AP", "Cook",         "+91 98000 00005", "arun@vstay.app",     "Morning",  "leave"),
     ]
     for sid, wid, name, init, role, phone, email, shift, status in rows:
         query(

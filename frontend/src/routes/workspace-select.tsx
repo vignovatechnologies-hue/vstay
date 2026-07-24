@@ -11,7 +11,7 @@ import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/workspace-select")({
   ssr: false,
-  head: () => ({ meta: [{ title: "Choose a workspace · Hostly" }] }),
+  head: () => ({ meta: [{ title: "Choose a workspace · Vstay" }] }),
   component: WorkspaceSelectPage,
 });
 

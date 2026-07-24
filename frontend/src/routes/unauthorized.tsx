@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 
 export const Route = createFileRoute("/unauthorized")({
   ssr: false,
-  head: () => ({ meta: [{ title: "Access denied · Hostly" }] }),
+  head: () => ({ meta: [{ title: "Access denied · Vstay" }] }),
   component: () => (
     <div className="grid min-h-dvh place-items-center bg-background px-6">
       <div className="max-w-md text-center">

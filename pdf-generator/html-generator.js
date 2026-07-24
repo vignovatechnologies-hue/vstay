@@ -1,8 +1,8 @@
 const fs = require('fs');
 const path = require('path');
 
-const ASSETS_DIR = path.join(__dirname, '..', 'hostly-preview-assets');
-const OUTPUT_HTML = path.join(__dirname, '..', 'Hostly-Dashboard-Preview.html');
+const ASSETS_DIR = path.join(__dirname, '..', 'vstay-preview-assets');
+const OUTPUT_HTML = path.join(__dirname, '..', 'Vstay-Dashboard-Preview.html');
 
 function getBase64Image(filename) {
   const filePath = path.join(ASSETS_DIR, filename);
@@ -26,7 +26,7 @@ function generateHtml() {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Hostly - Dashboard Preview</title>
+  <title>Vstay - Dashboard Preview</title>
   <style>
     /* System Font Stack & Reset */
     :root {
@@ -234,7 +234,7 @@ function generateHtml() {
   <header class="hero">
     <div class="container">
       <span class="badge">Product Preview</span>
-      <h1>Hostly</h1>
+      <h1>Vstay</h1>
       <h2>PG, Hostel & Property Management Platform</h2>
       <p>A unified platform for property operations, tenants, staff, payments, subscriptions and administration.</p>
     </div>
@@ -319,7 +319,7 @@ function generateHtml() {
   <!-- Final Footer -->
   <section class="final">
     <div class="container">
-      <h1>Hostly</h1>
+      <h1>Vstay</h1>
       <p>Smart Property Operations in One Platform</p>
     </div>
   </section>

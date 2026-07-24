@@ -1,5 +1,5 @@
 """
-Pydantic schemas (request/response models) for the Hostly API.
+Pydantic schemas (request/response models) for the Vstay API.
 
 All input/output schemas are defined here and imported into routers.
 """

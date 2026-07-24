@@ -1,6 +1,6 @@
-# Hostly Backend
+# Vstay Backend
 
-FastAPI backend for the Hostly PG Management Platform.
+FastAPI backend for the Vstay PG Management Platform.
 
 ## Folder Structure
 

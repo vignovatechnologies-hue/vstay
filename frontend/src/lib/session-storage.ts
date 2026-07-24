@@ -1,6 +1,6 @@
 import type { Session } from "@/types/auth";
 
-const KEY = "hostly.session.v1";
+const KEY = "vstay.session.v1";
 
 function isBrowser(): boolean {
   return typeof window !== "undefined" && typeof window.localStorage !== "undefined";

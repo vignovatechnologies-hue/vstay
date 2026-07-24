@@ -72,7 +72,6 @@ export const STAFF_NAV: NavGroup[] = [
     items: [
       { label: "Dashboard", to: "/staff/dashboard", icon: LayoutDashboard },
       { label: "Tenants", to: "/staff/tenants", icon: Users },
-      { label: "Rooms", to: "/staff/rooms", icon: BedDouble },
     ],
   },
   {

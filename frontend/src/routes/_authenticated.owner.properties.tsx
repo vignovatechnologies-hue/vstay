@@ -27,7 +27,7 @@ import { useWorkspace } from "@/providers/workspace-provider";
 import { OWNER_NAV } from "@/config/navigation";
 
 export const Route = createFileRoute("/_authenticated/owner/properties")({
-  head: () => ({ meta: [{ title: "Properties · Hostly" }] }),
+  head: () => ({ meta: [{ title: "Properties · Vstay" }] }),
   component: PropertiesPage,
 });
 

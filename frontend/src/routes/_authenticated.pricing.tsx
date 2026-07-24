@@ -12,7 +12,7 @@ import { Loader2 } from "lucide-react";
 import { usePlansConfig } from "@/lib/plans-config";
 
 export const Route = createFileRoute("/_authenticated/pricing")({
-  head: () => ({ meta: [{ title: "Pricing · Hostly" }] }),
+  head: () => ({ meta: [{ title: "Pricing · Vstay" }] }),
   component: PricingPage,
 });
 
@@ -47,7 +47,7 @@ function PricingPage() {
       setVerifying(true);
       apiFetch(`/api/billing/verify-session?session_id=${sessionId}`)
         .then(() => {
-          toast.success("Payment verified! Welcome to Hostly.");
+          toast.success("Payment verified! Welcome to Vstay.");
           window.history.replaceState({}, document.title, window.location.pathname);
           // Force page reload to clear stale react-query workspace cache
           window.location.href = getDashboardRouteForRole(user.role);
@@ -123,8 +123,8 @@ function PricingPage() {
         key: order.keyId,
         amount: order.amount,
         currency: order.currency,
-        name: "Hostly",
-        description: order.planId === "monthly" ? "Hostly Monthly Plan" : "Hostly Yearly Plan",
+        name: "Vstay",
+        description: order.planId === "monthly" ? "Vstay Monthly Plan" : "Vstay Yearly Plan",
         order_id: order.orderId,
         prefill: {
           name: user.fullName || "",
@@ -154,7 +154,7 @@ function PricingPage() {
             });
 
             if (verification.status === "success") {
-              toast.success("Payment verified! Welcome to Hostly.");
+              toast.success("Payment verified! Welcome to Vstay.");
               // Force page reload to clear stale react-query workspace cache
               window.location.href = getDashboardRouteForRole(user.role);
             } else {

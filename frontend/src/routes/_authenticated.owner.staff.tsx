@@ -29,11 +29,12 @@ import { useWorkspace } from "@/providers/workspace-provider";
 import { OWNER_NAV } from "@/config/navigation";
 import { KpiCard } from "@/components/layout/kpi-card";
 import { useApiCollection } from "@/hooks/use-api-collection";
+import { apiFetch } from "@/services/api-client";
 import { shortId } from "@/lib/actions";
 import { db } from "@/mock/db";
 
 export const Route = createFileRoute("/_authenticated/owner/staff")({
-  head: () => ({ meta: [{ title: "Staff · Hostly" }] }),
+  head: () => ({ meta: [{ title: "Staff · Vstay" }] }),
   component: StaffPage,
 });
 
@@ -56,7 +57,7 @@ const SEED: Staff[] = [
     initials: "DS",
     role: "Manager",
     phone: "+91 98202 33210",
-    email: "devang@hostly.app",
+    email: "devang@vstay.app",
     shift: "Day",
     status: "active",
   },
@@ -66,7 +67,7 @@ const SEED: Staff[] = [
     initials: "PN",
     role: "Reception",
     phone: "+91 98111 22345",
-    email: "pooja@hostly.app",
+    email: "pooja@vstay.app",
     shift: "Morning",
     status: "active",
   },
@@ -76,7 +77,7 @@ const SEED: Staff[] = [
     initials: "RK",
     role: "Warden",
     phone: "+91 90000 88123",
-    email: "ramesh@hostly.app",
+    email: "ramesh@vstay.app",
     shift: "Night",
     status: "active",
   },
@@ -86,7 +87,7 @@ const SEED: Staff[] = [
     initials: "LD",
     role: "Housekeeping",
     phone: "+91 89765 00121",
-    email: "lakshmi@hostly.app",
+    email: "lakshmi@vstay.app",
     shift: "Morning",
     status: "active",
   },
@@ -96,7 +97,7 @@ const SEED: Staff[] = [
     initials: "SP",
     role: "Security",
     phone: "+91 88123 45109",
-    email: "suresh@hostly.app",
+    email: "suresh@vstay.app",
     shift: "Night",
     status: "leave",
   },
@@ -106,7 +107,7 @@ const SEED: Staff[] = [
     initials: "AR",
     role: "Cook",
     phone: "+91 90876 22105",
-    email: "anita@hostly.app",
+    email: "anita@vstay.app",
     shift: "Full day",
     status: "active",
   },
@@ -135,24 +136,40 @@ function StaffPage() {
   if (!user) return null;
   if (user.role !== "owner") return <Navigate to="/unauthorized" />;
 
-  function sendInviteEmail(name: string, email: string, rawRole: string, phone: string = "") {
+  async function sendInviteEmail(
+    staffId: string | undefined,
+    name: string,
+    email: string,
+    rawRole: string,
+    phone: string = ""
+  ) {
     if (!user) return;
     if (!email || email === "—") {
       toast.error("Staff email is required");
       return;
     }
     const emailLower = email.toLowerCase().trim();
-    const resolvedRole = (
-      rawRole.toLowerCase() === "manager" ? "manager" : rawRole.toLowerCase()
-    ) as any;
 
-    // Generate default password: first 4 characters of name (lowercase, no spaces) + last 4 digits of phone
-    const cleanName = name.replace(/\s+/g, "").slice(0, 4).toLowerCase();
-    const cleanPhone = (phone || "").replace(/\D/g, "");
-    const lastFourPhone = cleanPhone.length >= 4 ? cleanPhone.slice(-4) : cleanPhone || "0000";
-    const generatedPassword = `${cleanName}${lastFourPhone}`;
-
-    toast.success(`Dashboard access URL sent to ${emailLower}`);
+    try {
+      if (staffId && !staffId.startsWith("s1") && !staffId.startsWith("s2") && !staffId.startsWith("s3") && !staffId.startsWith("s4") && !staffId.startsWith("s5") && !staffId.startsWith("s6")) {
+        await apiFetch(`/api/staff/${staffId}/send-invite`, { method: "POST" });
+      } else {
+        await apiFetch(`/api/staff/send-email`, {
+          method: "POST",
+          body: JSON.stringify({
+            name,
+            email: emailLower,
+            role: rawRole,
+            phone,
+            workspace_id: activeWorkspace?.id,
+            login_url: `${window.location.origin}/login`,
+          }),
+        });
+      }
+      toast.success(`Dashboard link & onboarding credentials sent to ${emailLower}`);
+    } catch (err: any) {
+      toast.error(err.message || "Failed to send onboarding email");
+    }
   }
 
   async function invite() {
@@ -170,7 +187,7 @@ function StaffPage() {
       .toUpperCase() || "S";
 
     try {
-      await add({
+      const created = await add({
         workspace_id: activeWorkspace?.id ?? "",
         name: form.name,
         initials,
@@ -180,7 +197,7 @@ function StaffPage() {
         shift: form.shift,
         status: "active",
       });
-      sendInviteEmail(form.name, staffEmail, form.role, form.phone);
+      await sendInviteEmail(created?.id, form.name, staffEmail, form.role, form.phone);
       setForm({ name: "", role: "Reception", phone: "", email: "", shift: "Day" });
       setOpen(false);
     } catch {
@@ -348,7 +365,7 @@ function StaffPage() {
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => sendInviteEmail(s.name, s.email, s.role, s.phone)}
+                      onClick={() => sendInviteEmail(s.id, s.name, s.email, s.role, s.phone)}
                     >
                       Send Link
                     </Button>

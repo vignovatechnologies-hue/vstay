@@ -542,7 +542,7 @@ function renderContent() {
     container.innerHTML = \`
       <div class="empty-state">
         <h2 style="color: var(--text-primary); margin-bottom: 1rem;">\${moduleName}</h2>
-        <p>This module is part of the full Hostly application.</p>
+        <p>This module is part of the full Vstay application.</p>
         <p style="margin-top: 1rem; font-size: 0.85rem; color: var(--text-very-muted);">Interactive Preview Mode</p>
       </div>
     \`;
@@ -559,14 +559,14 @@ const html = `<!DOCTYPE html>
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Hostly - Interactive Preview</title>
+  <title>Vstay - Interactive Preview</title>
   <style>${css}</style>
 </head>
 <body>
   <div class="shell">
     <aside class="side" id="sidebar">
       <div class="side-header">
-        Hostly <span class="badge">Preview</span>
+        Vstay <span class="badge">Preview</span>
       </div>
       <nav class="nav" id="nav-container"></nav>
     </aside>
@@ -600,6 +600,6 @@ const html = `<!DOCTYPE html>
 </body>
 </html>`;
 
-const outputFilename = path.join(__dirname, 'Hostly-Interactive-Preview.html');
+const outputFilename = path.join(__dirname, 'Vstay-Interactive-Preview.html');
 fs.writeFileSync(outputFilename, html, 'utf8');
 console.log('Successfully generated interactive HTML preview at:', outputFilename);

@@ -5,19 +5,24 @@ import { db, type MockEmail } from "@/mock/db";
 
 export function GlobalSimulatedInbox() {
   const [isOpen, setIsOpen] = useState(false);
-  const [emails, setEmails] = useState<MockEmail[]>(() => db.emails);
+  const [emails, setEmails] = useState<MockEmail[]>([]);
+  const [mounted, setMounted] = useState(false);
 
   const refreshMailbox = () => {
     setEmails([...db.emails]);
   };
 
-  // Sync emails periodically
+  // Sync emails periodically and prevent SSR hydration mismatch
   useEffect(() => {
+    setMounted(true);
+    setEmails([...db.emails]);
     const interval = setInterval(() => {
       setEmails([...db.emails]);
     }, 2000);
     return () => clearInterval(interval);
   }, []);
+
+  if (!mounted) return null;
 
   return (
     <>

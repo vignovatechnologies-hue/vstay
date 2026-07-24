@@ -27,7 +27,7 @@ import { useAuth } from "@/providers/auth-provider";
 import { TENANT_NAV } from "@/config/navigation";
 
 export const Route = createFileRoute("/_authenticated/tenant/room")({
-  head: () => ({ meta: [{ title: "My room · Hostly" }] }),
+  head: () => ({ meta: [{ title: "My room · Vstay" }] }),
   component: MyRoomPage,
 });
 

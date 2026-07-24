@@ -2,16 +2,16 @@
  * useLocalState / useLocalCollection
  *
  * Drop-in replacement for simple localStorage hooks that ALSO syncs
- * state to the Hostly backend (/api/settings) so every button action
+ * state to the Vstay backend (/api/settings) so every button action
  * is persisted in PostgreSQL.
  *
  * On mount  → fetch latest value from server; fall back to seed if missing
  * On change → debounced POST to server (+ immediate localStorage write)
  */
 import { useCallback, useEffect, useRef, useState } from "react";
-import { sessionStorage as hostlySession } from "@/lib/session-storage";
+import { sessionStorage as vstaySession } from "@/lib/session-storage";
 
-const API_BASE = (import.meta.env.VITE_API_URL as string) || "http://localhost:8000";
+const API_BASE = (import.meta.env.VITE_API_URL as string) || "http://localhost:5001";
 
 // ─── localStorage helpers ─────────────────────────────────────────────────────
 
@@ -78,7 +78,7 @@ export function useLocalState<T>(key: string, seed: T) {
 
   // Read session from localStorage directly (safe on server and avoids
   // hook-order issues when this hook is called outside AuthProvider)
-  const session = isBrowser() ? hostlySession.read() : null;
+  const session = isBrowser() ? vstaySession.read() : null;
   const userId = session?.userId ?? null;
   const workspaceId = session?.workspaceId ?? null;
 

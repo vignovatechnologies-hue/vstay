@@ -16,7 +16,15 @@ interface AuthContextValue {
   user: User | null;
   session: Session | null;
   status: "loading" | "authenticated" | "unauthenticated";
-  login: (email: string, password: string, expectedRole?: "owner" | "super_admin") => Promise<LoginResult>;
+  login: (email: string, password: string, expectedRole?: "owner" | "staff" | "tenant" | "super_admin") => Promise<LoginResult>;
+  signup: (data: {
+    fullName: string;
+    email: string;
+    phone: string;
+    hostelName: string;
+    password?: string;
+    planId?: "monthly" | "yearly" | null;
+  }) => Promise<LoginResult>;
   logout: () => Promise<void>;
   setActiveWorkspace: (workspaceId: string) => void;
   hasRole: (role: UserRole | UserRole[]) => boolean;
@@ -49,20 +57,54 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       });
   }, []);
 
-  const login = useCallback(async (email: string, password: string, expectedRole?: "owner" | "super_admin") => {
-    const result = await authService.login({ email, password });
-    if (expectedRole === "super_admin" && result.user.role !== "super_admin") {
-      throw new Error("Access denied: This account is not a Super Admin.");
-    }
-    if (expectedRole === "owner" && result.user.role === "super_admin") {
-      throw new Error("Access denied: Please use the Super Admin portal to log in.");
-    }
-    sessionStorage.write(result.session);
-    setSession(result.session);
-    setUser(result.user);
-    setStatus("authenticated");
-    return result;
-  }, []);
+  const login = useCallback(
+    async (email: string, password: string, expectedRole?: "owner" | "staff" | "tenant" | "super_admin") => {
+      const result = await authService.login({ email, password });
+      if (expectedRole) {
+        const uRole = result.user.role;
+        if (expectedRole === "owner" && uRole !== "owner") {
+          throw new Error(`This account is registered as ${uRole === "tenant" ? "Tenant" : "Staff"}. Please select the ${uRole === "tenant" ? "Tenant" : "Staff"} tab to sign in.`);
+        }
+        if (expectedRole === "staff" && uRole === "owner") {
+          throw new Error(`This account is registered as PG Owner. Please select the PG Owner tab to sign in.`);
+        }
+        if (expectedRole === "staff" && uRole === "tenant") {
+          throw new Error(`This account is registered as Tenant. Please select the Tenant tab to sign in.`);
+        }
+        if (expectedRole === "tenant" && uRole !== "tenant") {
+          throw new Error(`This account is registered as ${uRole === "owner" ? "PG Owner" : "Staff"}. Please select the ${uRole === "owner" ? "PG Owner" : "Staff"} tab to sign in.`);
+        }
+        if (expectedRole === "super_admin" && uRole !== "super_admin") {
+          throw new Error("This account does not have Super Admin access.");
+        }
+      }
+      sessionStorage.write(result.session);
+      setSession(result.session);
+      setUser(result.user);
+      setStatus("authenticated");
+      return result;
+    },
+    [],
+  );
+
+  const signup = useCallback(
+    async (data: {
+      fullName: string;
+      email: string;
+      phone: string;
+      hostelName: string;
+      password?: string;
+      planId?: "monthly" | "yearly" | null;
+    }) => {
+      const result = await authService.signup(data);
+      sessionStorage.write(result.session);
+      setSession(result.session);
+      setUser(result.user);
+      setStatus("authenticated");
+      return result;
+    },
+    [],
+  );
 
   const logout = useCallback(async () => {
     await authService.logout();
@@ -95,8 +137,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 
   const value = useMemo<AuthContextValue>(
-    () => ({ user, session, status, login, logout, setActiveWorkspace, hasRole, hasPermission }),
-    [user, session, status, login, logout, setActiveWorkspace, hasRole, hasPermission],
+    () => ({ user, session, status, login, signup, logout, setActiveWorkspace, hasRole, hasPermission }),
+    [user, session, status, login, signup, logout, setActiveWorkspace, hasRole, hasPermission],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

@@ -2,7 +2,7 @@ const puppeteer = require('puppeteer');
 const fs = require('fs');
 const path = require('path');
 
-const OUTPUT_DIR = path.join(__dirname, '..', 'hostly-preview-assets');
+const OUTPUT_DIR = path.join(__dirname, '..', 'vstay-preview-assets');
 
 async function capture() {
   if (!fs.existsSync(OUTPUT_DIR)) {
@@ -38,13 +38,13 @@ async function capture() {
   };
 
   try {
-    await capturePage('owner@hostly.app', '/owner/dashboard', 'owner-dashboard.png');
-    await capturePage('super@hostly.app', '/super-admin/dashboard', 'super-admin-dashboard.png');
-    await capturePage('tenant@hostly.app', '/tenant/dashboard', 'tenant-dashboard.png');
-    await capturePage('manager@hostly.app', '/staff/dashboard', 'staff-dashboard.png');
+    await capturePage('owner@vstay.app', '/owner/dashboard', 'owner-dashboard.png');
+    await capturePage('super@vstay.app', '/super-admin/dashboard', 'super-admin-dashboard.png');
+    await capturePage('tenant@vstay.app', '/tenant/dashboard', 'tenant-dashboard.png');
+    await capturePage('manager@vstay.app', '/staff/dashboard', 'staff-dashboard.png');
     
     // For pricing, log in as owner first
-    await page.goto(`http://localhost:4173/login?inviteEmail=owner@hostly.app`, { waitUntil: 'networkidle0' });
+    await page.goto(`http://localhost:4173/login?inviteEmail=owner@vstay.app`, { waitUntil: 'networkidle0' });
     await new Promise(r => setTimeout(r, 1000));
     await page.goto(`http://localhost:4173/pricing`, { waitUntil: 'networkidle0' });
     await new Promise(r => setTimeout(r, 1000));

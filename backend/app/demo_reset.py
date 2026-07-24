@@ -2,7 +2,7 @@
 Demo account data reset – runs every 24 hours.
 
 Why this exists:
-  Demo accounts (owner@hostly.app, tenant@hostly.app, etc.) are public
+  Demo accounts (owner@vstay.app, tenant@vstay.app, etc.) are public
   credentials anyone can use to explore the app. Without periodic cleanup,
   visitors accumulate test data and the demo becomes unusable. Worse, users
   could treat the demo as a free product, never paying.
@@ -187,11 +187,11 @@ def _reseed_tenants():
 
 def _reseed_staff():
     rows = [
-        ("s-1", "pg_greenhaven", "Devang Shah",  "DS", "Manager",      "+91 98000 00001", "devang@hostly.app",  "Full day", "active"),
-        ("s-2", "pg_greenhaven", "Pooja Nair",   "PN", "Reception",    "+91 98000 00002", "pooja@hostly.app",   "Day",      "active"),
-        ("s-3", "pg_greenhaven", "Suresh Kumar", "SK", "Housekeeping", "+91 98000 00003", "suresh@hostly.app",  "Morning",  "active"),
-        ("s-4", "pg_greenhaven", "Ravi Menon",   "RM", "Security",     "+91 98000 00004", "ravi@hostly.app",    "Night",    "active"),
-        ("s-5", "pg_greenhaven", "Arun Patel",   "AP", "Cook",         "+91 98000 00005", "arun@hostly.app",    "Morning",  "leave"),
+        ("s-1", "pg_greenhaven", "Devang Shah",  "DS", "Manager",      "+91 98000 00001", "devang@vstay.app",  "Full day", "active"),
+        ("s-2", "pg_greenhaven", "Pooja Nair",   "PN", "Reception",    "+91 98000 00002", "pooja@vstay.app",   "Day",      "active"),
+        ("s-3", "pg_greenhaven", "Suresh Kumar", "SK", "Housekeeping", "+91 98000 00003", "suresh@vstay.app",  "Morning",  "active"),
+        ("s-4", "pg_greenhaven", "Ravi Menon",   "RM", "Security",     "+91 98000 00004", "ravi@vstay.app",    "Night",    "active"),
+        ("s-5", "pg_greenhaven", "Arun Patel",   "AP", "Cook",         "+91 98000 00005", "arun@vstay.app",    "Morning",  "leave"),
     ]
     for sid, wid, name, init, role, phone, email, shift, status in rows:
         query(

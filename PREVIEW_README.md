@@ -1,6 +1,6 @@
-# Hostly Preview
+# Vstay Preview
 
-This is a standalone, shareable preview version of the Hostly application frontend. 
+This is a standalone, shareable preview version of the Vstay application frontend. 
 It utilizes a synthetic mock database and demonstrates the fully operational UI/UX 
 including the premium dark navy theme and role-based dashboard architectures.
 
@@ -20,10 +20,10 @@ For Vercel, you may need to add a `vercel.json` rewrite manually.
 ## Available Demo Roles
 
 You can test the cross-role dashboard protection by using the **Demo accounts** section directly on the login page:
-- **Super Admin** (`super@hostly.app`) -> SaaS Platform Control
-- **Owner** (`owner@hostly.app`) -> Operational PG Management
-- **Manager / Staff** (`manager@hostly.app`) -> Staff Tasks
-- **Tenant** (`tenant@hostly.app`) -> Tenant App
+- **Super Admin** (`super@vstay.app`) -> SaaS Platform Control
+- **Owner** (`owner@vstay.app`) -> Operational PG Management
+- **Manager / Staff** (`manager@vstay.app`) -> Staff Tasks
+- **Tenant** (`tenant@vstay.app`) -> Tenant App
 
 ## Limitations
 - **Data is Fictional**: All users, properties, names, and MRR metrics are synthetic placeholders.
